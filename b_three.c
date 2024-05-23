@@ -1,7 +1,3 @@
-//====== INFORMALÇÕES IMPORTANTES ======//
-// O campo m na struct representa o número de nós atual armazenados no nó
-//
-
 //====== Incluindo bibliotecas
 #include <stdio.h>
 #include <stdlib.h>
@@ -13,7 +9,7 @@
 
 //====== Criando structs
 struct no{
-    int m;
+    int m;                          //Campo que armazena o número de chaves atual do nó
     int chaves[2 * D];
     struct no * filhos[2 * D + 1];
 };
@@ -22,7 +18,7 @@ struct no{
 //- Função que imprime o menu na tela
 void menu(struct no** raiz);
 //- Função de busca em árvores B
-void buscaB(int x, struct no * r, struct no* pt, int* f, int* g);
+void buscaB(int x, struct no* r, struct no** pt, int* f, int* g);
 //- Função que gera um novo no de forma dinamica
 struct no* novo_no(int x);
 //- Função responsável por fazer a inserção de um novo elemento à árvore
@@ -85,10 +81,10 @@ void menu(struct no** raiz) {
 }
 
 //- Função de busca em árvores B
-void buscaB(int x, struct no * r, struct no* pt, int* f, int* g) {
+void buscaB(int x, struct no * r, struct no** pt, int* f, int* g) {
     //Declarando ponteiro para percorrer os nós da árvore, definindo pt para NULL e inicializando *f = 0 => chave não encontrada
     struct no* p = r;
-    pt = NULL;
+    *pt = NULL;
     *f = 0;
 
     //Enquanto o nó não for encontrado e enquanto ele não for uma folha
@@ -97,7 +93,7 @@ void buscaB(int x, struct no * r, struct no* pt, int* f, int* g) {
         //e armazenando o ponteiro da busca em pt
         int i = 0;
         *g = 0;
-        pt = p;
+        *pt = p;
         
         //Enquanto i for menos que o número de chaves atual do nó
         while(p != NULL && i < p->m){
@@ -150,21 +146,31 @@ int insercao(struct no** raiz, int x) {
     struct no* pt = NULL;
 
     //Primeiro verifica se a raiz da árvore é NULL para então criar a raiz da árvore    
-    if(*raiz == NULL){
+    if(*raiz == NULL)
         *raiz = novo_no(x);
-    }
     //Caso a raiz da ávore seja diferente de NULL
     else {
         //Chamada da função de busca na árvore B
-        buscaB(x, *raiz, pt, &f, &g);
+        buscaB(x, *raiz, &pt, &f, &g);
         
+        if(pt == NULL)
+            printf("pt NULL - 2\n");
+
         //Verifica se o elemento foi encontrado
         if(f == 1){
             printf("Elemento encontrado!\n");
             return 0;
+        //Caso o elemento não foi encontrado, verifica-se quantas chaves tem pt
+        //verificando se é possível inserir x na g-ésima posição de pt->chaves
+        } else if(pt->m < 2*D && pt->m == g){
+            pt->chaves[g] = x;
+            pt->m += 1;
+        //Para testes iniciais se verifica se o vetor de chaves está cheio e então cancela a inserção
+        } else if(pt->m == 2*D){
+            printf("pt->chaves está cheio!\n");
+            return 0;
         }
     }
-
     //Retorna um ao fim indicando a inserção de um novo elemento a árvore
     return 1;
 }

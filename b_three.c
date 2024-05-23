@@ -157,7 +157,8 @@ int insercao(struct no** raiz, int x) {
     else {
         //Chamada da função de busca na árvore B
         buscaB(x, *raiz, pt, &f, &g);
-
+        
+        //Verifica se o elemento foi encontrado
         if(f == 1){
             printf("Elemento encontrado!\n");
             return 0;

@@ -1,5 +1,5 @@
 //====== INFORMALÇÕES IMPORTANTES ======//
-//
+// O campo m na struct representa o número de nós atual armazenados no nó
 //
 
 //====== Incluindo bibliotecas
@@ -20,24 +20,34 @@ struct no{
 
 //====== Declarando protótipos das funções
 //- Função que imprime o menu na tela
-void menu();
+void menu(struct no** raiz);
 //- Função de busca em árvores B
 void buscaB(int x, struct no * r, struct no* pt, int* f, int* g);
+//- Função que gera um novo no de forma dinamica
+struct no* novo_no(int x);
 //- Função responsável por fazer a inserção de um novo elemento à árvore
-void insercao();
+int insercao(struct no** raiz, int x);
 
 int main() {
     struct no* raiz = NULL;
 
-    raiz->chaves[0] = 50;
+    menu(&raiz);
 
-    menu();
+    //Sistema para imprimir as chaves da raiz para testar os primeiros casos de inserção
+    if(raiz == NULL)
+        printf("Raiz inválida\n");
+    else {
+        printf("raiz: ");
+        for(int i = 0; i < raiz->m; i++)
+            printf("[%d] ", raiz->chaves[i]);
+    }
+    printf("\n");
     return 0;
 }
 
 //- Função que imprime o menu na tela
-void menu() {
-    int opt, run = 1;
+void menu(struct no** raiz) {
+    int opt, x, run = 1;
 
     do {
         printf("\n// ----- // ----- // ÁRVORE B // ----- // ----- //\n");
@@ -52,6 +62,14 @@ void menu() {
         switch(opt) {
             case 1:
                 printf("Buscar\n");
+            break;
+
+            case 2:
+                printf("Insira a nova chave: ");
+                scanf("%d", &x);
+
+                if(insercao(raiz, x))
+                    printf("Chave inserida!\n");
             break;
         
             case 9:
@@ -68,6 +86,7 @@ void menu() {
 
 //- Função de busca em árvores B
 void buscaB(int x, struct no * r, struct no* pt, int* f, int* g) {
+    //Declarando ponteiro para percorrer os nós da árvore, definindo pt para NULL e inicializando *f = 0 => chave não encontrada
     struct no* p = r;
     pt = NULL;
     *f = 0;
@@ -81,13 +100,14 @@ void buscaB(int x, struct no * r, struct no* pt, int* f, int* g) {
         pt = p;
         
         //Enquanto i for menos que o número de chaves atual do nó
-        while(i < p->m){
+        while(p != NULL && i < p->m){
             //Caso x seja maior que a chave de índice i
             if(x > p->chaves[i]){
+                //atualizamos i para percorrer o array de chaves e *g para armazenar a possível posição onde x será colocado caso não seja encontrado
                 i += 1;         
                 *g += 1;
             //Caso x seja igual a chave de índice i
-            } else if(x == p->chaves){
+            } else if(x == p->chaves[i]){
                 //Alteramos p para NULL e *f para 1 => chave encontrada
                 p = NULL;
                 *f = 1;
@@ -95,12 +115,55 @@ void buscaB(int x, struct no * r, struct no* pt, int* f, int* g) {
             } else {
                 //Vamos para o próximo nó de índice i e atualizamos o valor de i para sair do laço
                 p = p->filhos[i];
-                i = p->m + 1;
+                if(p != NULL) i = p->m + 1;
             }
-            
-            //Caso i não seja menor que nenhuma das chaves já verificadas, enviamos p para o próximo nó
-            if(i == p->m)
-                p = p->filhos[i];
+        }
+        //Caso i não seja menor que nenhuma das chaves já verificadas, enviamos p para o próximo nó
+        if(p != NULL && i == p->m)
+            p = p->filhos[i];
+    }
+}
+
+//- Função que gera um novo no de forma dinamica
+struct no* novo_no(int x) {
+    //Variável que armazena o novo nó criado dinamicamente
+    struct no* novo = NULL;
+
+    //Criando novo nó de forma dinâmica e inicializando a primeira chave(campo chaves[0])
+    //e seu total de chaves atual(campo m)
+    novo = (struct no*) calloc (1, sizeof(struct no));
+    novo->chaves[0] = x;
+    novo->m = 1;
+
+    //Inicializando todos os ponteiros para os filhos como NULL
+    for(int i = 0; i < 2 * D + 1; i++)
+        novo->filhos[i] = NULL;
+    
+    //Retornando novo
+    return novo;
+}
+
+//- Função responsável por fazer a inserção de um novo elemento à árvore
+int insercao(struct no** raiz, int x) {
+    //Variáveis de parâmetros para função de busca
+    int f, g;
+    struct no* pt = NULL;
+
+    //Primeiro verifica se a raiz da árvore é NULL para então criar a raiz da árvore    
+    if(*raiz == NULL){
+        *raiz = novo_no(x);
+    }
+    //Caso a raiz da ávore seja diferente de NULL
+    else {
+        //Chamada da função de busca na árvore B
+        buscaB(x, *raiz, pt, &f, &g);
+
+        if(f == 1){
+            printf("Elemento encontrado!\n");
+            return 0;
         }
     }
+
+    //Retorna um ao fim indicando a inserção de um novo elemento a árvore
+    return 1;
 }

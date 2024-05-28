@@ -20,9 +20,13 @@ void menu(struct no** raiz);
 //- Função de busca em árvores B
 void buscaB(int x, struct no* r, struct no** pt, int* f, int* g);
 //- Função que gera um novo no de forma dinamica
-struct no* novo_no(int x);
+struct no* novaPagina(int x);
 //- Função responsável por fazer a inserção de um novo elemento à árvore
 int insercao(struct no** raiz, int x);
+//- Função imprimir chaves do nó
+void imprimirNo(struct no* pt);
+//- Função do algoritmo de cisão
+void cisao(struct no** r, struct no* pt, int x);
 
 int main() {
     struct no* raiz = NULL;
@@ -34,8 +38,13 @@ int main() {
         printf("Raiz inválida\n");
     else {
         printf("raiz: ");
-        for(int i = 0; i < raiz->m; i++)
-            printf("[%d] ", raiz->chaves[i]);
+        imprimirNo(raiz);
+
+        for(int i = 0; i < raiz->m + 1; i++){
+            printf("pt->filhos[%d]:", i);
+            imprimirNo(raiz->filhos[i]);
+        }
+            
     }
     printf("\n");
     return 0;
@@ -43,7 +52,8 @@ int main() {
 
 //- Função que imprime o menu na tela
 void menu(struct no** raiz) {
-    int opt, x, run = 1;
+    int opt, x, f, g, run = 1;
+    struct no* pt, * pt_pai;
 
     do {
         printf("\n// ----- // ----- // ÁRVORE B // ----- // ----- //\n");
@@ -57,7 +67,14 @@ void menu(struct no** raiz) {
 
         switch(opt) {
             case 1:
-                printf("Buscar\n");
+                printf("Insira a chave a ser buscada: ");
+                scanf("%d", &x);
+                buscaB(x, *raiz, &pt, &f, &g);
+
+                if(f == 1)
+                    printf("Elemento encontrado no endereço: %p\n", pt);
+                else
+                    printf("Elemento não encontrado\n");
             break;
 
             case 2:
@@ -66,6 +83,12 @@ void menu(struct no** raiz) {
 
                 if(insercao(raiz, x))
                     printf("Chave inserida!\n");
+                else
+                    printf("Inserção inválida!\n");
+            break;
+
+            case 3:
+                printf("Remover\n");
             break;
         
             case 9:
@@ -121,7 +144,7 @@ void buscaB(int x, struct no * r, struct no** pt, int* f, int* g) {
 }
 
 //- Função que gera um novo no de forma dinamica
-struct no* novo_no(int x) {
+struct no* novaPagina(int x) {
     //Variável que armazena o novo nó criado dinamicamente
     struct no* novo = NULL;
 
@@ -147,30 +170,73 @@ int insercao(struct no** raiz, int x) {
 
     //Primeiro verifica se a raiz da árvore é NULL para então criar a raiz da árvore    
     if(*raiz == NULL)
-        *raiz = novo_no(x);
+        *raiz = novaPagina(x);
     //Caso a raiz da ávore seja diferente de NULL
     else {
         //Chamada da função de busca na árvore B
         buscaB(x, *raiz, &pt, &f, &g);
-        
-        if(pt == NULL)
-            printf("pt NULL - 2\n");
 
         //Verifica se o elemento foi encontrado
-        if(f == 1){
-            printf("Elemento encontrado!\n");
+        if(f == 1)
             return 0;
+
         //Caso o elemento não foi encontrado, verifica-se quantas chaves tem pt
         //verificando se é possível inserir x na g-ésima posição de pt->chaves
-        } else if(pt->m < 2*D && pt->m == g){
+        else if(pt->m < 2*D && pt->m == g){
             pt->chaves[g] = x;
             pt->m += 1;
-        //Para testes iniciais se verifica se o vetor de chaves está cheio e então cancela a inserção
+
+        //Caso a folha pt esteja lotada, executar o algoritmo de cisão
         } else if(pt->m == 2*D){
-            printf("pt->chaves está cheio!\n");
-            return 0;
+            printf("Cisão necessária... Aplicando Algoritmo...\n");
+            cisao(raiz, pt, x);
         }
     }
+
     //Retorna um ao fim indicando a inserção de um novo elemento a árvore
     return 1;
+}
+
+//- Função imprimir chaves do nó
+void imprimirNo(struct no* pt) {
+    if(pt == NULL)
+        printf("NULL");
+    else
+        for(int i = 0; i < pt->m; i++)
+            printf(" [%d]", pt->chaves[i]);
+
+    printf("\n");
+}
+
+//- Função do algoritmo de cisão
+void cisao(struct no** r, struct no* pt, int x) {
+    //Cria um novo ponteiro que será o filho esquerdo
+    struct no* pte = novaPagina(0);
+    //Calcula a posição do 'meio' de uma folha e armazena o valor encontrado em pt->chaves nessa posição
+    int meio = D, k = pt->chaves[meio];
+
+    //Adiciona as chaves antes da posição do meio ao filho esquerdo
+    for(int i = 0; i < meio; i++)
+            pte->chaves[i] = pt->chaves[i];
+    pte->m = meio;
+
+    //Atualiza os valores do antigo pt, filho direito agora
+    int j = 0;
+    pt->m = 0;
+    for(int i = meio + 1; i < 2 * D; i++){
+        pt->chaves[j] = pt->chaves[i];
+        pt->m += 1;
+        j++;
+    }
+    pt->chaves[pt->m] = x;
+    pt->m += 1;
+
+    for(int i = 0; i < pt->m; i++)
+        printf("pt->chaves[%d] = %d\n", i, pt->chaves[i]);
+
+    if(pt == *r){
+        *r = novaPagina(k);
+        (*r)->filhos[0] = pte;
+        (*r)->filhos[1] = pt;
+    }
 }

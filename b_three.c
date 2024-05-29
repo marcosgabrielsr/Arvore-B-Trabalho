@@ -26,26 +26,16 @@ int insercao(struct no** raiz, int x);
 //- Função imprimir chaves do nó
 void imprimirNo(struct no* pt);
 //- Função do algoritmo de cisão
-void cisao(struct no** r, struct no* pt, int x);
+void dividirPagina(struct no** r, struct no* pt, int x, int g);
+//- Função que gera trata de criar nova página, atualizar página atual e retornar posição
+// necessária para cisão
+struct no* auxDPagina(int *c, struct no** pt, int x, int g);
 
 int main() {
     struct no* raiz = NULL;
 
     menu(&raiz);
 
-    //Sistema para imprimir as chaves da raiz para testar os primeiros casos de inserção
-    if(raiz == NULL)
-        printf("Raiz inválida\n");
-    else {
-        printf("raiz(%p): ", raiz);
-        imprimirNo(raiz);
-
-        for(int i = 0; i < raiz->m + 1; i++){
-            printf("pt(%p)->filhos[%d]:", raiz->filhos[i], i);
-            imprimirNo(raiz->filhos[i]);
-        }
-            
-    }
     printf("\n");
     return 0;
 }
@@ -60,6 +50,7 @@ void menu(struct no** raiz) {
         printf("[1] - Buscar\n");
         printf("[2] - Inserir\n");
         printf("[3] - Remover\n");
+        printf("[4] - Imprimir Raiz\n");
         printf("[9] - Finalizar\n");
 
         printf("Opção escolhida: ");
@@ -90,6 +81,22 @@ void menu(struct no** raiz) {
             case 3:
                 printf("Remover\n");
             break;
+
+            case 4:
+                //Sistema para imprimir as chaves da raiz para testar os primeiros casos de inserção
+                if(*raiz == NULL)
+                    printf("Raiz nula\n");
+                else {
+                    printf("raiz(%p): ", *raiz);
+                    imprimirNo(*raiz);
+
+                    for(int i = 0; i <= (*raiz)->m; i++){
+                        printf("pt(%p)->filhos[%d]:", (*raiz)->filhos[i], i);
+                        imprimirNo((*raiz)->filhos[i]);
+                    }
+                        
+                }
+            break;
         
             case 9:
                 run = 0;
@@ -101,6 +108,17 @@ void menu(struct no** raiz) {
             break;
         }
     } while(run == 1);
+}
+
+//- Função imprimir chaves do nó
+void imprimirNo(struct no* pt) {
+    if(pt == NULL)
+        printf("NULL");
+    else
+        for(int i = 0; i < pt->m; i++)
+            printf(" [%d]", pt->chaves[i]);
+
+    printf("\n");
 }
 
 //- Função de busca em árvores B
@@ -191,11 +209,21 @@ int insercao(struct no** raiz, int x) {
         else if(pt->m < 2*D && pt->m == g){
             pt->chaves[g] = x;
             pt->m += 1;
+        //Caso o elemento não foi encontrado, no entanto g != pt->m
+        } else if(pt->m < 2*D && pt->m != g) {
+            //Empurramos os valores a partir de g uma casa pra frente
+            for(int i = pt->m; i > g; i--)
+                pt->chaves[i] = pt->chaves[i - 1];
+            //Adicionamos x na posição g
+            pt->chaves[g] = x;
+            //Atualizamos o número de chaves atuais no vetor
+            pt->m += 1;
 
         //Caso a folha pt esteja lotada, executar o algoritmo de cisão
         } else if(pt->m == 2*D){
             printf("Cisão necessária... Aplicando Algoritmo...\n");
-            cisao(raiz, pt, x, g);
+            printf("Posição que deveria estar: %d\n", g);
+            dividirPagina(raiz, pt, x, g);
         }
     }
 
@@ -203,54 +231,100 @@ int insercao(struct no** raiz, int x) {
     return 1;
 }
 
-//- Função imprimir chaves do nó
-void imprimirNo(struct no* pt) {
-    if(pt == NULL)
-        printf("NULL");
-    else
-        for(int i = 0; i < pt->m; i++)
-            printf(" [%d]", pt->chaves[i]);
+//- Função que gera trata de criar nova página, atualizar página atual e retornar posição
+// necessária para cisão
+struct no* auxDPagina(int *c, struct no** pt, int x, int g) {
+    //Cria novo ponteiro que será irmã adjacente da página atual
+    struct no* pt_novo = novaPagina(0);
 
-    printf("\n");
+    //Caso g < D...
+    if(g < D) {
+        //Armazena elemento que se encontra na posição D - 1
+        *c = (*pt)->chaves[D - 1];
+
+        //-- Atualização da nova página pt_novo
+        //Adiciona as chaves antes da posição do meio ao filho esquerdo
+        for(int i = 0; i < g; i++)
+            pt_novo->chaves[i] = (*pt)->chaves[i];
+        pt_novo->chaves[g] = x;
+
+        //Percorre as casas depois de g
+        for(int i = g; i < D - 1; i++)
+            pt_novo->chaves[i+1] = (*pt)->chaves[i];
+        pt_novo->m = D;
+
+        //-- Atualização da página atual pt
+        //Percorrendo vetor atual atualizando as posições dos números trazendo eles para o começo
+        //do vetor, mantendo a propriedade de ordenação
+        for(int i = D; i < 2 * D; i++)
+            (*pt)->chaves[i - D] = (*pt)->chaves[i];
+        (*pt)->m = D;
+    }
+    //Caso g > D...
+    else if(g > D) {
+        //Armazena elemento que se encontra na posição D
+        *c = (*pt)->chaves[D];
+
+        //-- Atualização da nova página pt_novo
+        //Adiciona as chaves do pt_novo até a posição D
+        for(int i = 0; i < D; i++)
+            pt_novo->chaves[i] = (*pt)->chaves[i];
+        pt_novo->m = D;
+
+        //-- Atualização da página atual pt
+        //Percorrendo vetor atual (partindo de D + 1) atualizando as posições dos até g
+        for(int i = D + 1; i < g; i++)
+            (*pt)->chaves[i - (D + 1)] = (*pt)->chaves[i];
+        (*pt)->chaves[g - (D + 1)] = x;
+
+        //Percorrendo o vetor atual partindo da posição g até 2 * D
+        for(int i = g; i < 2 * D; i++)
+            (*pt)->chaves[i - D] = (*pt)->chaves[i];
+        (*pt)->m = D;
+    }
+    //Caso g == D...
+    else{
+        //Armazena x em c, para eviar ele ao pai de pt
+        *c = x;
+
+        //-- Atualização da nova página pt_novo
+        //Adiciona as chaves da metade de pt em pt_novo
+        for(int i = 0; i < D; i++)
+            pt_novo->chaves[i] = (*pt)->chaves[i];
+        pt_novo->m = D;
+
+        //-- Atualização de pt, trazendo seus últimos valores para frente
+        for(int i = D; i < 2*D;i++)
+            (*pt)->chaves[i - D] = (*pt)->chaves[i];
+        (*pt)->m = D;
+    }
+    return pt_novo;
 }
 
 //- Função do algoritmo de cisão
-void cisao(struct no** r, struct no* pt, int x) {
+void dividirPagina(struct no** r, struct no* pt, int x, int g) {
     //Cria um novo ponteiro que será o filho esquerdo
-    struct no* pte = novaPagina(0), * pt_pai = NULL, * pt_aux = NULL;
+    struct no* pt_novo = NULL, * pt_pai = NULL, * pt_aux = NULL;
     //Calcula a posição do 'meio' de uma folha e armazena o valor encontrado em pt->chaves nessa posição
-    int meio = D, k = pt->chaves[meio];
-    int f = 0, g = 0;
+    int f_aux = 0, g_aux = 0, c = 0;
 
-    //Adiciona as chaves antes da posição do meio ao filho esquerdo
-    for(int i = 0; i < meio; i++)
-            pte->chaves[i] = pt->chaves[i];
-    pte->m = meio;
-
-    //Atualiza os valores do antigo pt, filho direito agora
-    int j = 0;
-    pt->m = 0;
-    for(int i = meio + 1; i < 2 * D; i++){
-        pt->chaves[j] = pt->chaves[i];
-        pt->m += 1;
-        j++;
-    }
-    pt->chaves[pt->m] = x;
-    pt->m += 1;
+    //Criando nova página adjacente, atualizando pt e retornando chave que será
+    //adicionada no pai de pt
+    pt_novo = auxDPagina(&c, &pt, x, g);
 
     //Caso o ponteiro pra fazer a cisão seja a raiz
     if(pt == *r){
-        *r = novaPagina(k);
-        (*r)->filhos[0] = pte;
+        *r = novaPagina(c);
+        (*r)->filhos[0] = pt_novo;
         (*r)->filhos[1] = pt;
     //Caso contrário...
     } else {
-        //Buscando pelo pai de p...
-        pt_pai = buscaB(pt->chaves[0], *r, &pt_aux, &f, &g);
+        //Buscando pelo pai de pt...
+        pt_pai = buscaB(pt->chaves[0], *r, &pt_aux, &f_aux, &g_aux);
 
         //Verificando se o pai de pt já está completo...
         if(pt_pai->m == 2*D)
-            cisao(r, pt_pai, k);
+            dividirPagina(r, pt_pai, c, g);
         //Caso contrário...
         //Aplicar cisão para páginas internas (nós internos)...
         else{

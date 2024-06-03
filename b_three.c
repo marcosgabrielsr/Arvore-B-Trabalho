@@ -27,9 +27,11 @@ int insercao(struct no** raiz, int x);
 void imprimirNo(struct no* pt);
 //- Função do algoritmo de cisão
 void dividirPagina(struct no** r, struct no* pt, int x, int g);
-//- Função que gera trata de criar nova página, atualizar página atual e retornar posição
+//- Função que gera trata de criar nova nova folha, atualizar a folha atual e retornar posição
 // necessária para cisão
-struct no* dividirFolha(int *c, struct no** pt, int x, int g);
+void dividirFolha(struct no** r, struct no** pt, int x, int g);
+//- Função responsável por fazer a divisão de nós(páginas) internos
+void dividirNoInt(struct no** r, struct no** pt, int x, int w, struct no* pt1, struct no* pt2);
 
 int main() {
     struct no* raiz = NULL;
@@ -93,8 +95,10 @@ void menu(struct no** raiz) {
                     for(int i = 0; i <= (*raiz)->m; i++){
                         printf("pt(%p)->filhos[%d]:", (*raiz)->filhos[i], i);
                         imprimirNo((*raiz)->filhos[i]);
-                    }
-                        
+                        printf("Imprimir filhos de filho[%d]\n", i);
+                        for(int j = 0; j <= ((*raiz)->filhos[i])->m; j++)
+                            imprimirNo(((*raiz)->filhos[i])->filhos[j]);
+                    } 
                 }
             break;
         
@@ -216,7 +220,7 @@ int insercao(struct no** raiz, int x) {
 
         //Caso a folha pt esteja lotada, executar o algoritmo de cisão
         } else {
-            dividirPagina(raiz, pt, x, g);
+            dividirFolha(raiz, &pt, x, g);
         }
     }
 
@@ -226,14 +230,15 @@ int insercao(struct no** raiz, int x) {
 
 //- Função que gera trata de criar nova página, atualizar página atual e retornar posição
 // necessária para cisão
-struct no* dividirFolha(int *c, struct no** pt, int x, int g) {
+void dividirFolha(struct no** r, struct no** pt, int x, int g) {
     //Cria novo ponteiro que será irmã adjacente da página atual
     struct no* pt_novo = novaPagina(0);
-
+    
+    int vM;
     //Caso g < D...
     if(g < D) {
         //Armazena elemento que se encontra na posição D - 1
-        *c = (*pt)->chaves[D - 1];
+        vM = (*pt)->chaves[D - 1];
 
         //-- Atualização da nova página pt_novo
         //Adiciona as chaves antes da posição do meio ao filho esquerdo
@@ -256,7 +261,7 @@ struct no* dividirFolha(int *c, struct no** pt, int x, int g) {
     //Caso g > D...
     else if(g > D) {
         //Armazena elemento que se encontra na posição D
-        *c = (*pt)->chaves[D];
+        vM = (*pt)->chaves[D];
 
         //-- Atualização da nova página pt_novo
         //Adiciona as chaves do pt_novo até a posição D
@@ -265,7 +270,7 @@ struct no* dividirFolha(int *c, struct no** pt, int x, int g) {
         pt_novo->m = D;
 
         //-- Atualização da página atual pt
-        //Percorrendo vetor atual (partindo de D + 1) atualizando as posições dos até g
+        //Percorrendo vetor atual (partindo de D + 1) atualizando as posições das chaves de pt até g
         for(int i = D + 1; i < g; i++)
             (*pt)->chaves[i - (D + 1)] = (*pt)->chaves[i];
         (*pt)->chaves[g - (D + 1)] = x;
@@ -278,7 +283,7 @@ struct no* dividirFolha(int *c, struct no** pt, int x, int g) {
     //Caso g == D...
     else{
         //Armazena x em c, para eviar ele ao pai de pt
-        *c = x;
+        vM = x;
 
         //-- Atualização da nova página pt_novo
         //Adiciona as chaves da metade de pt em pt_novo
@@ -291,64 +296,96 @@ struct no* dividirFolha(int *c, struct no** pt, int x, int g) {
             (*pt)->chaves[i - D] = (*pt)->chaves[i];
         (*pt)->m = D;
     }
-    return pt_novo;
+    
+    if(*pt == *r){
+        *r = novaPagina(vM);
+        (*r)->filhos[0] = pt_novo;
+        (*r)->filhos[1] = *pt;
+    } else {
+        //Variáveis de auxílio para encontrar pai de pt
+        struct no* pt_pai, * pt_aux;
+        int f_aux, g_aux;
+        //Armazenando pai de pt
+        pt_pai = buscaB((*pt)->chaves[0], *r, &pt_aux, &f_aux, &g_aux);
+
+        //Encontrando a posição de pt no vetor de filhos de pt_pai
+        int w = 0;
+        while(pt_pai->filhos[w] != *pt) w++;
+
+        if(pt_pai->m == 2*D) {
+            dividirNoInt(r, &pt_pai, vM, w, pt_novo, *pt);
+        } else {
+            //Movimenta as chaves do pai de pt começando na última indo até a posição de pt em pt_pai->filhos
+            for(int i = pt_pai->m; i > w; i--)
+                pt_pai->chaves[i] = pt_pai->chaves[i - 1];
+            
+            //Movimenta os filhos do pai de pt começando pelo último ind até a posição de pt em pt_pai->filhos
+            for(int i = pt_pai->m + 1; i > w + 1; i--)
+                pt_pai->filhos[i] = pt_pai->filhos[i - 1];
+            
+            pt_pai->chaves[w] = vM;
+
+            pt_pai->filhos[w] = pt_novo;
+            pt_pai->filhos[w + 1] = *pt;
+            //Por fim, atualiza o total de filhos de pt_pai
+            pt_pai->m += 1;
+        }
+    }
 }
 
-//- Função do algoritmo de cisão
-void dividirPagina(struct no** r, struct no* pt, int x, int g) {
-    //Cria um novo ponteiro que será o filho esquerdo
-    struct no* pt_novo = NULL, * pt_pai = NULL, * pt_aux = NULL;
-    //Calcula a posição do 'meio' de uma folha e armazena o valor encontrado em pt->chaves nessa posição
-    int f_aux = 0, g_aux = 0, c = 0;
+//- Função responsável por fazer a divisão de nós(páginas) internos
+void dividirNoInt(struct no** r, struct no** pt, int x, int w, struct no* pt1, struct no* pt2) {
+    //Nova página
+    struct no* pt_novo = novaPagina(0);
+    int vM;
 
-    //Caso o ponteiro pra fazer a cisão seja a raiz e a mesma seja uma folha
-    if(pt == *r && pt->filhos[0] == NULL){
-        //Criando nova página adjacente, atualizando pt e retornando chave que será
-        //adicionada no pai de pt
-        pt_novo = dividirFolha(&c, &pt, x, g);
+    if(w > D) {
+        //Armazena o valor médio
+        vM = (*pt)->chaves[D];
 
-        *r = novaPagina(c);
-        (*r)->filhos[0] = pt_novo;
-        (*r)->filhos[1] = pt;
-    //Caso contrário...
-    } else {
-        //Buscando pelo pai de pt...
-        pt_pai = buscaB(pt->chaves[0], *r, &pt_aux, &f_aux, &g_aux);
+        //Armazena as chaves do intervalo [0:D] para pt_novo
+        for(int i = 0; i < D; i++)
+            pt_novo->chaves[i] = (*pt)->chaves[i];
+        //Armazena os filhos do intervalo [0:w] para pt_novo
+        for(int i = 0; i < w; i++)
+            pt_novo->filhos[i] = (*pt)->filhos[i];
+        pt_novo->m = D;
 
-        //Verificando se o pai de pt já está completo...
-        if(pt_pai->m == 2*D)
-            printf("Caso recursivo");
-            //dividirPagina(r, pt_pai, c, g);
+         if(w > D + 1){        
+            //Atualizando a posição das chaves de pt
+            for(int i = D + 1; i < w; i++)
+                (*pt)->chaves[i - (D + 1)] = (*pt)->chaves[i];
+            (*pt)->chaves[w - (D + 1)] = x;
+
+            //Atualizando as posições das chaves de pt depois de w
+            for(int i = w + 1; i < 2*D; i++)
+                (*pt)->chaves[i - D] = (*pt)->chaves[i];
+            (*pt)->m = D;
+
+            //Atualizando a posição dos filhos de pt
+            for(int i = D + 1; i < w; i++)
+                (*pt)->filhos[i - (D + 1)] = (*pt)->filhos[i];
         //Caso contrário...
-        //Aplicar cisão para páginas internas (nós internos)...
-        else{
-            //Para descobrir a posição de pt no vetor de filhos de seu pai
-            int w = 0;
-            while(pt_pai->filhos[w] != pt) w++;
-            printf("w: %d\n", w);
+        } else {
+            //Atualizando a posição das chaves de pt
+            (*pt)->chaves[0] = x;
+            for(int i = D + 1; i < 2*D;i++)
+                (*pt)->chaves[i - D] = (*pt)->chaves[i];
+            (*pt)->m = D;
 
-            //Caso pt seja uma folha
-            if(pt->filhos[0] == NULL) {
-                //Dividi a folha
-                pt_novo = dividirFolha(&c, &pt, x, g);
-
-                //Movimenta as chaves do pai de pt começando na última indo até a posição de pt em pt_pai->filhos
-                for(int i = pt_pai->m; i > w; i--){
-                    //printf("%d ", i);
-                    pt_pai->chaves[i] = pt_pai->chaves[i - 1];
-                }
-
-                //Movimenta os filhos do pai de pt começando pelo último ind até a posição ed pt em pt_pai->filhos
-                for(int i = pt_pai->m + 1; i > w + 1; i--)
-                    pt_pai->filhos[i] = pt_pai->filhos[i - 1];
-                
-                pt_pai->chaves[w] = c;
-
-                pt_pai->filhos[w] = pt_novo;
-                pt_pai->filhos[w + 1] = pt;
-                //Por fim, atualiza o total de filhos de pt_pai
-                pt_pai->m += 1;
-            }
+            //Atualizando a posição dos filhos de pt
+            for(int i = D + 1; i < 2*D + 1; i++)
+                (*pt)->filhos[i - D] = (*pt)->filhos[i];
         }
+
+        //Adicionando os ponteiros obtidos da divisão do filho de pt aos vetor de filhos de pt
+        (*pt)->filhos[w - (D + 1)] = pt1;
+        (*pt)->filhos[(w + 1) - (D + 1)] = pt2;
+    }
+
+    if(*pt == *r){
+        *r = novaPagina(vM);
+        (*r)->filhos[0] = pt_novo;
+        (*r)->filhos[1] = *pt;
     }
 }

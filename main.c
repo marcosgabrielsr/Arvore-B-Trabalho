@@ -4,7 +4,7 @@
 #include <string.h>
 
 //====== Definindo constantes
-#define D 2
+#define D 3
 #define TAMANHO_MAXIMO_NOME 13
 
 //====== Criando structs
@@ -38,6 +38,12 @@ void dividirNoInt(struct no** r, struct no** pt, int x, struct no* novo_filho);
 struct no* pai(struct no* r, struct no* pt, int *i);
 //- Organiza o pai do nó que não está cheio quando o nó sofre cisão
 void organizaPai(struct no** pt_pai, struct no* pt_novo, int x);
+//- Função que remove um elemento da árvore
+int remover(struct no** r, int x);
+//- Pega a maior chave da filha seguindo os filhos de pt
+int pegarMaior(struct no* pt, int i, struct no** folha);
+//-Função que anula a raiz caso sua quantidade de chaves seja 0 (r->m == 0)
+void anularRaiz(struct no** r);
 
 int main() {
     struct no* raiz = NULL;
@@ -50,7 +56,7 @@ int main() {
 
 //- Função que imprime o menu na tela
 void menu(struct no** raiz) {
-    int opt, x, f, g, run = 1;
+    int opt, x, f, g, executar = 1;
     struct no* pt;
 
     do {
@@ -87,7 +93,13 @@ void menu(struct no** raiz) {
             break;
 
             case 3:
-                printf("Remover\n");
+                printf("Insira a chave a ser removida: ");
+                scanf("%d", &x);
+
+                if(remover(raiz, x))
+                    printf("Chave Removida!\n");
+                else
+                    printf("Remoção inválida!\n");
             break;
 
             case 4:
@@ -102,14 +114,15 @@ void menu(struct no** raiz) {
                         printf("pt(%p)->filhos[%d]:", (*raiz)->filhos[i], i);
                         imprimirNo((*raiz)->filhos[i]);
                         printf("Imprimir filhos de filho[%d]\n", i);
-                        for(int j = 0; j <= ((*raiz)->filhos[i])->m; j++)
-                            imprimirNo(((*raiz)->filhos[i])->filhos[j]);
+                        if((*raiz)->filhos[i] != NULL)
+                            for(int j = 0; j <= ((*raiz)->filhos[i])->m; j++)
+                                imprimirNo(((*raiz)->filhos[i])->filhos[j]);
                     } 
                 }
             break;
         
             case 9:
-                run = 0;
+                executar = 0;
                 printf("Saindo...\n");
             break;
 
@@ -117,7 +130,7 @@ void menu(struct no** raiz) {
                 printf("Opção inválida. Tente novamente...\n");
             break;
         }
-    } while(run == 1);
+    } while(executar == 1);
 }
 
 //- Função de comparar para a função qsort
@@ -366,4 +379,58 @@ void dividirNoInt(struct no** r, struct no** pt, int x, struct no* novo_filho) {
             organizaPai(&pt_pai, pt_novo, vetorC[(2*D + 1)/2]);
         }
     }
+}
+
+//- Pega a maior chave da filha seguindo os filhos de pt
+int pegarMaior(struct no* pt, int i, struct no** folha) {
+    //Ponteiro auxiliar para percorrer os descendentes de pt
+    struct no* p = pt;
+    int x;
+    //Percorrendo até chegar a folha
+    while(p->filhos[0] != NULL)
+        p = p->filhos[p->m];
+    //Armazena a maior chave da folha
+    x = p->chaves[p->m - 1];
+    //Armazena a folha e atualiza o seu tamanho
+    *folha = p;
+    p->m -= 1;
+
+    return x;
+}
+
+//-Função que anula a raiz caso sua quantidade de chaves seja 0 (r->m == 0)
+void anularRaiz(struct no** r){
+    struct no* p = *r;
+    *r = NULL;
+    free(p);
+}
+
+//- Função que remove um elemento da árvore
+int remover(struct no** r, int x) {
+    //Variáveis para a busca
+    struct no* pt = NULL;
+    int f, g;
+
+    //Executando busca
+    buscaB(x, *r, &pt, &f, &g);
+    //Caso o elemento não foi encontrado...
+    if(f == 0)
+        return 0;
+    //Caso contrário...
+    else{
+        //Verifica se é uma folha...
+        if(pt->filhos[0] == NULL) {
+            //Sobrescreve o vetor com memmove para remover a antiga chave
+            memmove(&pt->chaves[g], &pt->chaves[g + 1], pt->m - (g + 1));
+            pt->m -= 1;
+            //Caso pt seja a raiz e a mesma não tenha chaves
+            if(pt == *r && pt->m == 0)
+                anularRaiz(r);
+        //Caso contrário...
+        } else {
+            printf("pt != folha\n");
+        }
+    }
+    
+    return 1;
 }

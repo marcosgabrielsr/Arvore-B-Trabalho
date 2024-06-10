@@ -274,9 +274,6 @@ struct no* pai(struct no* r, struct no* pt, int *i) {
     //Variáveis auxiliares para a busca
     struct no* pt_aux,* pt_pai;
     int f_aux, g_aux;
-
-    printf("\nB\n");
-
     //Armazenando pai de pt
     pt_pai = buscaB(pt->chaves[0], r, &pt_aux, &f_aux, &g_aux);
 
@@ -483,7 +480,7 @@ void concatenar(struct no **r, struct no** pt_pai, struct no** pt, struct no** q
     free(aux);
     (*pt_pai)->m -= 1;
 
-    if((*pt_pai) == (*r))
+    if((*pt_pai) == (*r)){
         //Caso o número de chaves da raiz seja 0...
         if((*pt_pai)->m == 0) {
             //Libera a raiz e a coloca em outro ponteiro
@@ -491,6 +488,9 @@ void concatenar(struct no **r, struct no** pt_pai, struct no** pt, struct no** q
             *r = *pt;
             free(aux);
         }
+    } else {
+        
+    }
 }   
 
 //- Função que redistribui chaves de duas páginas
@@ -506,20 +506,14 @@ void redistribuir(struct no** pt_pai, struct no** pt, struct no** qt, int w) {
     //Ordenando vetor auxiliar
     qsort(vetor, n, sizeof(int), comparar);
 
-    printf("Vetor ordenado: [");
-    for(int i = 0; i < n; i++)
-        printf("%d ", vetor[i]);
-    printf("]\n");
-
     //Copia os elementos antes da metade do vetor auxiliar para pt e depois da metade para qt
-    memcpy((*pt)->chaves, vetor, n/2*sizeof(int));
+    memcpy((*pt)->chaves, vetor, (n/2)*sizeof(int));
     memcpy((*qt)->chaves, &vetor[n/2 + 1], (n - n/2 - 1)*sizeof(int));
     (*pt)->m = n/2;
+    (*qt)->m = (n - n/2 - 1);
 
-    printf("qt->chaves: [");
-    for(int i = 0; i < (n - n/2 - 1); i++)
-        printf("%d ", (*qt)->chaves[i]);
-    printf("]\n");
+    //Atualizando a chave de pt_pai que separa pt e qt
+    (*pt_pai)->chaves[w] = vetor[n/2];
 
     free(vetor);
 }

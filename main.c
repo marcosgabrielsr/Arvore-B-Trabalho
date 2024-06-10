@@ -47,7 +47,8 @@ void anularRaiz(struct no** r);
 //- Função que concatena páginas
 void concatenar(struct no **r, struct no** pt_pai, struct no** pt, struct no** qt, int w);
 //- Função que redistribui chaves de duas páginas
-void redistribuir();
+//- Função que redistribui chaves de duas páginas
+void redistribuir(struct no** pt_pai, struct no** pt, struct no** qt, int w);
 
 int main() {
     struct no* raiz = NULL;
@@ -274,6 +275,8 @@ struct no* pai(struct no* r, struct no* pt, int *i) {
     struct no* pt_aux,* pt_pai;
     int f_aux, g_aux;
 
+    printf("\nB\n");
+
     //Armazenando pai de pt
     pt_pai = buscaB(pt->chaves[0], r, &pt_aux, &f_aux, &g_aux);
 
@@ -424,9 +427,11 @@ int remover(struct no** r, int x) {
     else{
         //Verifica se é uma folha...
         if(pt->filhos[0] == NULL) {
+            folha = pt;
             //Sobrescreve o vetor com memmove para remover a antiga chave
-            memmove(&pt->chaves[g], &pt->chaves[g + 1], pt->m - (g + 1));
+            memcpy(&(pt->chaves[g]), &(pt->chaves[g + 1]), (pt->m-(g + 1))*sizeof(int));
             pt->m -= 1;
+
             //Caso pt seja a raiz e a mesma não tenha chaves
             if(pt == *r && pt->m == 0)
                 anularRaiz(r);
@@ -434,27 +439,27 @@ int remover(struct no** r, int x) {
         } else {
             //Pega o maior elemento da folha e coloca na posição de x
             pt->chaves[g] = pegarMaior(pt, g, &folha);
-            //Verifica se o número atual de chaves de folha é menor que D
-            if(folha->m < D) {
-                //Pega o pai de folha e sua posição em relação a seu pai
-                int w;
-                struct no* pt_pai = pai(*r, folha, &w);
-                //Caso w seja pt_pai->m - 1...
-                if(w == 0) {
-                    if((pt_pai->filhos[w])->m + (pt_pai->filhos[w + 1])->m < 2*D)
-                        concatenar(r, &pt_pai, &pt_pai->filhos[w], &pt_pai->filhos[w + 1], w);
-                    else
-                        redistribuir();
-                } else {
-                    if((pt_pai->filhos[w - 1])->m + (pt_pai->filhos[w])->m < 2*D)
-                        concatenar(r, &pt_pai, &pt_pai->filhos[w - 1], &pt_pai->filhos[w], w - 1);
-                    else
-                        redistribuir();
-                }
+        }
+
+        //Verifica se o número atual de chaves de folha é menor que D
+        if(folha != *r && folha->m < D) {
+            //Pega o pai de folha e sua posição em relação a seu pai
+            int w;
+            struct no* pt_pai = pai(*r, folha, &w);
+            //Caso w seja pt_pai->m - 1...
+            if(w == 0) {
+                if((pt_pai->filhos[w])->m + (pt_pai->filhos[w + 1])->m < 2*D)
+                    concatenar(r, &pt_pai, &pt_pai->filhos[w], &pt_pai->filhos[w + 1], w);
+                else
+                    redistribuir(&pt_pai, &pt_pai->filhos[w], &pt_pai->filhos[w + 1], w);
+            } else {
+                if((pt_pai->filhos[w - 1])->m + (pt_pai->filhos[w])->m < 2*D)
+                    concatenar(r, &pt_pai, &pt_pai->filhos[w - 1], &pt_pai->filhos[w], w - 1);
+                else
+                    redistribuir(&pt_pai, &pt_pai->filhos[w - 1], &pt_pai->filhos[w], w - 1);
             }
         }
     }
-    
     return 1;
 }
 
@@ -489,6 +494,32 @@ void concatenar(struct no **r, struct no** pt_pai, struct no** pt, struct no** q
 }   
 
 //- Função que redistribui chaves de duas páginas
-void redistribuir() {
+void redistribuir(struct no** pt_pai, struct no** pt, struct no** qt, int w) {
+    //Variável que armazena o número de elementos que terá o vetor auxiliar
+    int n = (*pt)->m + (*qt)->m + 1;
+    //vetor auxiliar que conterá todos os elementos de pt, qt e mais a chave que os divide
+    int* vetor = (int*) calloc (n, sizeof(int));
+    //Copiando os elementos de pt e qt em vetor e adiciona a chave que os divide
+    memcpy(vetor, (*pt)->chaves, (*pt)->m*sizeof(int));
+    memcpy(&vetor[(*pt)->m], (*qt)->chaves, (*qt)->m*sizeof(int));
+    vetor[n - 1] = (*pt_pai)->chaves[w];
+    //Ordenando vetor auxiliar
+    qsort(vetor, n, sizeof(int), comparar);
 
+    printf("Vetor ordenado: [");
+    for(int i = 0; i < n; i++)
+        printf("%d ", vetor[i]);
+    printf("]\n");
+
+    //Copia os elementos antes da metade do vetor auxiliar para pt e depois da metade para qt
+    memcpy((*pt)->chaves, vetor, n/2*sizeof(int));
+    memcpy((*qt)->chaves, &vetor[n/2 + 1], (n - n/2 - 1)*sizeof(int));
+    (*pt)->m = n/2;
+
+    printf("qt->chaves: [");
+    for(int i = 0; i < (n - n/2 - 1); i++)
+        printf("%d ", (*qt)->chaves[i]);
+    printf("]\n");
+
+    free(vetor);
 }

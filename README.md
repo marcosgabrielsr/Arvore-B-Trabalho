@@ -4,7 +4,7 @@ Trabalho da Faculdade onde Devemos criar uma B-Árvore onde as chaves são nomes
 
 ## Funções
 # Busca:
-A função de busca foi baseada
+A função de busca foi baseada no
 
 # Dividir Folha
 

@@ -42,8 +42,12 @@ void organizaPai(struct no** pt_pai, struct no* pt_novo, int x);
 int remover(struct no** r, int x);
 //- Pega a maior chave da filha seguindo os filhos de pt
 int pegarMaior(struct no* pt, int i, struct no** folha);
-//-Função que anula a raiz caso sua quantidade de chaves seja 0 (r->m == 0)
+//- Função que anula a raiz caso sua quantidade de chaves seja 0 (r->m == 0)
 void anularRaiz(struct no** r);
+//- Função que concatena páginas
+void concatenar();
+//- Função que redistribui chaves de duas páginas
+void redistribuir();
 
 int main() {
     struct no* raiz = NULL;
@@ -384,18 +388,18 @@ void dividirNoInt(struct no** r, struct no** pt, int x, struct no* novo_filho) {
 //- Pega a maior chave da filha seguindo os filhos de pt
 int pegarMaior(struct no* pt, int i, struct no** folha) {
     //Ponteiro auxiliar para percorrer os descendentes de pt
-    struct no* p = pt;
-    int x;
+    struct no* p = pt->filhos[i];
+    int y;
     //Percorrendo até chegar a folha
     while(p->filhos[0] != NULL)
         p = p->filhos[p->m];
     //Armazena a maior chave da folha
-    x = p->chaves[p->m - 1];
+    y = p->chaves[p->m - 1];
     //Armazena a folha e atualiza o seu tamanho
     *folha = p;
     p->m -= 1;
-
-    return x;
+    //Retorna y
+    return y;
 }
 
 //-Função que anula a raiz caso sua quantidade de chaves seja 0 (r->m == 0)
@@ -408,7 +412,7 @@ void anularRaiz(struct no** r){
 //- Função que remove um elemento da árvore
 int remover(struct no** r, int x) {
     //Variáveis para a busca
-    struct no* pt = NULL;
+    struct no* pt = NULL, * folha = NULL;
     int f, g;
 
     //Executando busca
@@ -428,7 +432,15 @@ int remover(struct no** r, int x) {
                 anularRaiz(r);
         //Caso contrário...
         } else {
-            printf("pt != folha\n");
+            //Pega o maior elemento da folha e coloca na posição de x
+            pt->chaves[g] = pegarMaior(pt, g, &folha);
+
+            //Verifica se o número atual de chaves de folha é menor que D
+            if(folha->m < D) {
+                //Pega o pai de folha e sua posição em relação a seu pai
+                int w;
+                struct no* pt_pai = pai(*r, folha, &w);
+            }
         }
     }
     

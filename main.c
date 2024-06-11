@@ -4,7 +4,7 @@
 #include <string.h>
 
 //====== Definindo constantes
-#define D 3
+#define D 6
 #define TAMANHO_MAXIMO_NOME 13
 
 //====== Criando structs
@@ -53,6 +53,9 @@ void redistribuir(struct no** pt_pai, struct no** pt, struct no** qt, int w);
 int main() {
     struct no* raiz = NULL;
 
+    for(int i = 1; i <= 809; i += 1)
+        insercao(&raiz, i);
+
     menu(&raiz);
 
     printf("\n");
@@ -82,7 +85,7 @@ void menu(struct no** raiz) {
                 buscaB(x, *raiz, &pt, &f, &g);
 
                 if(f == 1)
-                    printf("Elemento encontrado no endereço: %p\n", pt);
+                    printf("Endereço: %p\nElemento: %d", pt, pt->chaves[g]);
                 else
                     printf("Elemento não encontrado\n");
             break;
@@ -362,9 +365,9 @@ void dividirNoInt(struct no** r, struct no** pt, int x, struct no* novo_filho) {
     //Ordenando vetorF
     qsort(vetorF, 2*D+2, sizeof(struct no*), compararNo);
 
-    //Copiando os primeiros 2*D+1 valores para pt_novo->filhos
+    //Copiando os primeiros D+1 valores para pt_novo->filhos
     memcpy(pt_novo->filhos, vetorF, (D+1)*sizeof(struct no*));
-    //Copiando os 2*D+1 a partir do meio de vetorF para (*pt)->filhos
+    //Copiando os D+1 a partir do meio de vetorF para (*pt)->filhos
     memcpy((*pt)->filhos, &vetorF[D+1], (D+1)*sizeof(struct no*));
 
     if(*pt == *r){
@@ -372,7 +375,7 @@ void dividirNoInt(struct no** r, struct no** pt, int x, struct no* novo_filho) {
         (*r)->filhos[0] = pt_novo;
         (*r)->filhos[1] = *pt;
     } else {
-        //Armazenando o pai de pt (pt_pai) a posição de w em pt_pai->filho
+        //Armazenando o pai de pt (pt_pai) e a posição w de pt em pt_pai->filho
         int w;
         struct no* pt_pai = pai(*r, *pt, &w);
         //Caso pai de pt esteja cheio...
@@ -463,17 +466,31 @@ int remover(struct no** r, int x) {
 //- Função que concatena páginas
 void concatenar(struct no **r, struct no** pt_pai, struct no** pt, struct no** qt, int w) {
     //Vetor de auxílio para concatenar as páginas e adicionar a chave que os separa
-    int vetor[2*D], n = (*pt)->m + (*qt)->m + 1;
+    int vetorC[2*D], n = (*pt)->m + (*qt)->m + 1;
+    //Vetor de auxílio para concatenar os filhos das páginas
+    struct no* vetorF[2*D+1];
     struct no* aux = (*qt);
     
-    //Adiciona as chaves de pt, qt e a chave que os divide em vetor
-    memcpy(vetor, (*pt)->chaves, (*pt)->m*sizeof(int));
-    memcpy(&vetor[(*pt)->m], (*qt)->chaves, (*qt)->m*sizeof(int));
-    vetor[(*pt)->m + (*qt)->m] = (*pt_pai)->chaves[w];
-    //Ordenando vetor
-    qsort(vetor, n, sizeof(int), comparar);
-    //Copia os dados de vetor para pt
-    memcpy((*pt)->chaves, vetor, n*sizeof(int));
+    //Adiciona as chaves de pt, qt e a chave que os divide em vetorC
+    memcpy(vetorC, (*pt)->chaves, (*pt)->m*sizeof(int));
+    memcpy(&vetorC[(*pt)->m], (*qt)->chaves, (*qt)->m*sizeof(int));
+    vetorC[(*pt)->m + (*qt)->m] = (*pt_pai)->chaves[w];
+    //Ordenando vetorC
+    qsort(vetorC, n, sizeof(int), comparar);
+
+    //Caso pt não seja uma folha
+    if((*pt)->filhos[0] != NULL) {
+        //Copia os filhos de pt e qt para vetorF
+        memcpy(vetorF, (*pt)->filhos, ((*pt)->m + 1)*sizeof(struct no*));
+        memcpy(&vetorF[(*pt)->m + 1], (*qt)->filhos, ((*qt)->m + 1)*sizeof(struct no*));
+        //Ordenando vetorF
+        qsort(vetorF, n + 1, sizeof(struct no*), compararNo);
+        //Copiando os dados de vetorF para o vetor de filhos de pt
+        memcpy((*pt)->filhos, vetorF, (n+1)*sizeof(struct no*));
+    }
+
+    //Copia os dados de vetorC para pt
+    memcpy((*pt)->chaves, vetorC, n*sizeof(int));
     (*pt)->m = n;
     //Libera qt
     (*qt) = NULL;
@@ -492,10 +509,26 @@ void concatenar(struct no **r, struct no** pt_pai, struct no** pt, struct no** q
             aux = *r;
             *r = *pt;
             free(aux);
-        //Caso contrário sobrescreve os elementos da Raiz
         }
     } else {
-        printf("Caso diferente da Raiz!...\n");
+        //Verifica se pt_pai possui m < D para determinar ajustes que irão manter as propriedades...
+        if((*pt_pai)->m < D){
+            //Armazenando avo de pt (pai de pt_pai)
+            int j;
+            struct no* pt_avo = pai(*r, *pt_pai, &j);
+            //Caso j seja pt_pai->filhos[0]...
+            if(j == 0) {
+                if((pt_avo->filhos[j])->m + (pt_avo->filhos[j + 1])->m < 2*D)
+                    concatenar(r, &pt_avo, &pt_avo->filhos[j], &pt_avo->filhos[j + 1], j);
+                else
+                    redistribuir(&pt_avo, &pt_avo->filhos[j], &pt_avo->filhos[j + 1], j);
+            } else {
+                if((pt_avo->filhos[j - 1])->m + (pt_avo->filhos[j])->m < 2*D)
+                    concatenar(r, &pt_avo, &pt_avo->filhos[j - 1], &pt_avo->filhos[j], j - 1);
+                else
+                    redistribuir(&pt_avo, &pt_avo->filhos[j - 1], &pt_avo->filhos[j], j - 1);
+            }
+        }
     }
 }   
 
@@ -503,11 +536,11 @@ void concatenar(struct no **r, struct no** pt_pai, struct no** pt, struct no** q
 void redistribuir(struct no** pt_pai, struct no** pt, struct no** qt, int w) {
     //Variável que armazena o número de elementos do vetor auxiliar de chaves
     int n = (*pt)->m + (*qt)->m + 1;
-    //Variável que armazena o número de elementos do vetor auxiliar de filhos
-    int m = n + 1;
+    
     //vetor auxiliar que conterá todos os elementos de pt, qt e mais a chave que os divide
     int* vetorC = (int*) calloc (n, sizeof(int));
-    struct no** vetorF = (struct no**) calloc (m, sizeof(struct no*));
+    struct no** vetorF = (struct no**) calloc (n + 1, sizeof(struct no*));
+    
     //Caso ocorra um erro ao tentar alocar memória dinâmica
     if(vetorC == NULL || vetorF == NULL){
         printf("Erro ao alocar memória\n");
@@ -519,26 +552,25 @@ void redistribuir(struct no** pt_pai, struct no** pt, struct no** qt, int w) {
     vetorC[n - 1] = (*pt_pai)->chaves[w];
     //Ordenando vetorC
     qsort(vetorC, n, sizeof(int), comparar);
-    
     //Caso pt não seja uma folha
     if((*pt)->filhos[0] != NULL){
-        //Copiando os filhos de pt e qt para vetorF
         memcpy(vetorF, (*pt)->filhos, ((*pt)->m + 1)*sizeof(struct no*));
         memcpy(&vetorF[(*pt)->m + 1], (*qt)->filhos, ((*qt)->m + 1)*sizeof(struct no*));
         //Ordenando vetorF
-        qsort(vetorF, m, sizeof(struct no*), compararNo);
+        qsort(vetorF, n + 1, sizeof(struct no*), compararNo);
     }
-
+    
     //Copia os elementos antes da metade do vetorC para pt e depois da metade para qt
     memcpy((*pt)->chaves, vetorC, (n/2)*sizeof(int));
     memcpy((*qt)->chaves, &vetorC[n/2 + 1], (n - (n/2 + 1))*sizeof(int));
     (*pt)->m = n/2;
     (*qt)->m = (n - n/2 - 1);
+
     //Caso pt  não seja uma folha
     if((*pt)->filhos[0] != NULL){
         //Copiando os primeiros n/2 + 1 filhos para pt e o restante para qt
         memcpy((*pt)->filhos, vetorF, (n/2+1)*sizeof(struct no*));
-        memcpy((*qt)->filhos, &vetorF[n/2+2], (m - (n/2 + 2))*sizeof(struct no*));
+        memcpy((*qt)->filhos, &vetorF[n/2+1], ((n + 1) - (n/2 + 1))*sizeof(struct no*));
     }
     //Atualizando a chave de pt_pai que separa pt e qt
     (*pt_pai)->chaves[w] = vetorC[n/2];

@@ -4,7 +4,7 @@
 #include <string.h>
 
 //====== Definindo constantes
-#define D 4
+#define D 2
 #define TAMANHO_MAXIMO_NOME 13
 
 //====== Criando structs
@@ -77,7 +77,7 @@ void menu(struct no** raiz) {
         switch(opt) {
             case 1:
                 printf("Insira a chave a ser buscada: ");
-                scanf("%s", x);
+                scanf(" %[^\n]", x);
                 buscaB(x, *raiz, &pt, &f, &g);
 
                 if(f == 1)
@@ -88,7 +88,7 @@ void menu(struct no** raiz) {
 
             case 2:
                 printf("Insira a nova chave: ");
-                scanf("%s", x);
+                scanf(" %[^\n]", x);
 
                 if(insercao(raiz, x))
                     printf("Chave inserida!\n");
@@ -98,7 +98,7 @@ void menu(struct no** raiz) {
 
             case 3:
                 printf("Insira a chave a ser removida: ");
-                scanf("%s", x);
+                scanf(" %[^\n]", x);
 
                 if(remover(raiz, x))
                     printf("Chave Removida!\n");
@@ -139,10 +139,7 @@ void menu(struct no** raiz) {
 
 //- Função de comparar para a função qsort
 int compararChaves(const void * a, const void * b) {
-    const char *chaveA = *(const char **)a;
-    const char *chaveB = *(const char **)b;
-
-    return strcmp(chaveA, chaveB);
+    return strcmp((const char *)a, (const char *)b);
 }
 
 //- Função de comparação para ponteiros para no na função qsort
@@ -260,8 +257,7 @@ int insercao(struct no** raiz, char x[TAMANHO_MAXIMO_NOME]) {
             strcpy(pt->chaves[pt->m], x);
             pt->m += 1;
             //Ordena pt->chaves
-            qsort(pt->chaves, pt->m, sizeof(char *), compararChaves);
-
+            qsort(pt->chaves, pt->m, TAMANHO_MAXIMO_NOME, compararChaves);
         //Caso a folha pt esteja lotada, executar o algoritmo de cisão
         } else {
             dividirFolha(raiz, &pt, x, g);
@@ -291,7 +287,7 @@ void organizaPai(struct no** pt_pai, struct no* pt_novo, char x[TAMANHO_MAXIMO_N
     //Sobe o valor medio para pt_pai e ordena o vetor de chaves
     strcpy((*pt_pai)->chaves[(*pt_pai)->m], x);
     (*pt_pai)->m += 1;
-    qsort((*pt_pai)->chaves, (*pt_pai)->m, sizeof(char *), compararChaves);
+    qsort((*pt_pai)->chaves, (*pt_pai)->m, TAMANHO_MAXIMO_NOME, compararChaves);
 
     //Sobe pt_novo para pt_pai e ordena o vetor de filhos
     (*pt_pai)->filhos[(*pt_pai)->m] = pt_novo;
@@ -304,21 +300,21 @@ void dividirFolha(struct no** r, struct no** pt, char x[TAMANHO_MAXIMO_NOME], in
     //Vetor para armazenar as chaves da folha mais x
     char vetor[2*D+1][TAMANHO_MAXIMO_NOME];
     //Cria novo ponteiro que será irmã adjacente da página atual
-    struct no* pt_novo = novaPagina(0);
-    
-    //Copia o vetor pt->chaves para vetor e adiciona x
-    memcpy(vetor, (*pt)->chaves, (2*D)* TAMANHO_MAXIMO_NOME * sizeof(char *));
+    struct no* pt_novo = novaPagina(x);
+
+    //Copia vetor pt->chaves para vetor e adiciona x
+    memcpy(vetor, (*pt)->chaves, 2*D*TAMANHO_MAXIMO_NOME*sizeof(char));
     strcpy(vetor[2*D], x);
     //Ordenando o vetor
-    qsort(vetor, 2*D+1, sizeof(char *), compararChaves);
+    qsort(vetor, 2*D+1, TAMANHO_MAXIMO_NOME, compararChaves);
 
     //Copiando os elementos antes da posição do meio para pt_novo
-    memcpy(pt_novo->chaves, vetor, D * TAMANHO_MAXIMO_NOME * sizeof(char *));
-    //Copiando os elementos depois da ṕosição do meio para pt
-    memcpy((*pt)->chaves, &vetor[(2*D+1)/2 + 1], D * TAMANHO_MAXIMO_NOME * sizeof(char *));
+    memcpy(pt_novo->chaves, vetor, D*TAMANHO_MAXIMO_NOME*sizeof(char));
+    //Copiando os elementos depois da posição do meio para pt
+    memcpy((*pt)->chaves, &vetor[(2*D+1)/2 + 1], D*TAMANHO_MAXIMO_NOME*sizeof(char));
     //Atualizando número de chaves de pt e pt_novo
     (*pt)->m = pt_novo->m = D;
-
+    
     if(*pt == *r){
         //Cria uma nova raiz com o elemento do meio do vetor
         *r = novaPagina(vetor[(2*D + 1)/2]);
@@ -344,17 +340,17 @@ void dividirNoInt(struct no** r, struct no** pt, char x[TAMANHO_MAXIMO_NOME], st
     char vetorC[2*D + 1][TAMANHO_MAXIMO_NOME];
     struct no* vetorF[2*D + 2];
     //Nova página
-    struct no* pt_novo = novaPagina(0);
-
+    struct no* pt_novo = novaPagina(x);
     //Copia o vetor pt->chaves para vetorC e adiciona x
-    memcpy(vetorC, (*pt)->chaves, (2*D) * TAMANHO_MAXIMO_NOME * sizeof(char *));
+    memcpy(vetorC, (*pt)->chaves, (2*D)*TAMANHO_MAXIMO_NOME*sizeof(char));
     strcpy(vetorC[2*D], x);
+    
     //Ordenando vetorC
-    qsort(vetorC, 2*D + 1, sizeof(char *), compararChaves);
+    qsort(vetorC, 2*D + 1, TAMANHO_MAXIMO_NOME, compararChaves);
     //Copiando os valores antes do meio para pt_novo
-    memcpy(pt_novo->chaves, vetorC, D * TAMANHO_MAXIMO_NOME * sizeof(char *));
+    memcpy(pt_novo->chaves, vetorC, D*TAMANHO_MAXIMO_NOME*sizeof(char));
     //Copiando os valores depois do meio para pt
-    memcpy((*pt)->chaves, &vetorC[(2*D+1)/2 + 1], D * TAMANHO_MAXIMO_NOME * sizeof(char *));
+    memcpy((*pt)->chaves, &vetorC[(2*D+1)/2 + 1], D*TAMANHO_MAXIMO_NOME*sizeof(char));
     //atualiza números de chaves de pt e pt_novo
     (*pt)->m = pt_novo->m = D;
 
@@ -540,7 +536,7 @@ void redistribuir(struct no** pt_pai, struct no** pt, struct no** qt, int w) {
     struct no** vetorF = (struct no**) calloc (n + 1, sizeof(struct no*));
     
     //Caso ocorra um erro ao tentar alocar memória dinâmica
-    if(vetorC == NULL || vetorF == NULL){
+    if(vetorF == NULL){
         printf("Erro ao alocar memória\n");
         return;
     }
@@ -550,6 +546,7 @@ void redistribuir(struct no** pt_pai, struct no** pt, struct no** qt, int w) {
     strcpy(vetorC[n - 1], (*pt_pai)->chaves[w]);
     //Ordenando vetorC
     qsort(vetorC, n, sizeof(char *), compararChaves);
+
     //Caso pt não seja uma folha
     if((*pt)->filhos[0] != NULL){
         memcpy(vetorF, (*pt)->filhos, ((*pt)->m + 1)*sizeof(struct no*));
@@ -559,8 +556,8 @@ void redistribuir(struct no** pt_pai, struct no** pt, struct no** qt, int w) {
     }
     
     //Copia os elementos antes da metade do vetorC para pt e depois da metade para qt
-    memcpy((*pt)->chaves, vetorC, (n/2)*sizeof(int));
-    memcpy((*qt)->chaves, &vetorC[n/2 + 1], (n - (n/2 + 1))*sizeof(int));
+    memcpy((*pt)->chaves, vetorC, (n/2) * TAMANHO_MAXIMO_NOME * sizeof(char *));
+    memcpy((*qt)->chaves, &vetorC[n/2 + 1], (n - (n/2 + 1)) * TAMANHO_MAXIMO_NOME * sizeof(char *));
     (*pt)->m = n/2;
     (*qt)->m = (n - n/2 - 1);
 
@@ -571,8 +568,7 @@ void redistribuir(struct no** pt_pai, struct no** pt, struct no** qt, int w) {
         memcpy((*qt)->filhos, &vetorF[n/2+1], ((n + 1) - (n/2 + 1))*sizeof(struct no*));
     }
     //Atualizando a chave de pt_pai que separa pt e qt
-    (*pt_pai)->chaves[w] = vetorC[n/2];
+    strcpy((*pt_pai)->chaves[w], vetorC[n/2]);
 
-    free(vetorC);
     free(vetorF);
 }

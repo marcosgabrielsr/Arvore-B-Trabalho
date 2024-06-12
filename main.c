@@ -4,13 +4,13 @@
 #include <string.h>
 
 //====== Definindo constantes
-#define D 6
+#define D 4
 #define TAMANHO_MAXIMO_NOME 13
 
 //====== Criando structs
 struct no{
     int m;                          //Campo que armazena o número de chaves atual do nó
-    int chaves[2 * D];
+    char chaves[2 * D][TAMANHO_MAXIMO_NOME];
     struct no * filhos[2 * D + 1];
 };
 
@@ -18,30 +18,30 @@ struct no{
 //- Função que imprime o menu na tela
 void menu(struct no** raiz);
 //- Função de busca em árvores B
-struct no* buscaB(int x, struct no* r, struct no** pt, int* f, int* g);
+struct no* buscaB(char x[TAMANHO_MAXIMO_NOME], struct no* r, struct no** pt, int* f, int* g);
 //- Função que gera um novo no de forma dinamica
-struct no* novaPagina(int x);
+struct no* novaPagina(char x[TAMANHO_MAXIMO_NOME]);
 //- Função de comparação para vetores inteiros na função qsort
-int comparar(const void * a, const void * b);
+int compararChaves(const void * a, const void * b);
 //- Função de comparação para ponteiros para no na função qsort
 int compararNo(const void * a, const void * b);
 //- Função responsável por fazer a inserção de um novo elemento à árvore
-int insercao(struct no** raiz, int x);
+int insercao(struct no** raiz, char x[TAMANHO_MAXIMO_NOME]);
 //- Função imprimir chaves do nó
 void imprimirNo(struct no* pt);
 //- Função que gera trata de criar nova nova folha, atualizar a folha atual e retornar posição
 // necessária para cisão
-void dividirFolha(struct no** r, struct no** pt, int x, int g);
+void dividirFolha(struct no** r, struct no** pt, char x[TAMANHO_MAXIMO_NOME], int g);
 //- Função responsável por fazer a divisão de nós(páginas) internos
-void dividirNoInt(struct no** r, struct no** pt, int x, struct no* novo_filho);
+void dividirNoInt(struct no** r, struct no** pt, char x[TAMANHO_MAXIMO_NOME], struct no* novo_filho);
 //- Função que retorna o pai de pt e a posição do filho no vetor de filhos do pai
 struct no* pai(struct no* r, struct no* pt, int *i);
 //- Organiza o pai do nó que não está cheio quando o nó sofre cisão
-void organizaPai(struct no** pt_pai, struct no* pt_novo, int x);
+void organizaPai(struct no** pt_pai, struct no* pt_novo, char x[TAMANHO_MAXIMO_NOME]);
 //- Função que remove um elemento da árvore
 int remover(struct no** r, int x);
 //- Pega a maior chave da filha seguindo os filhos de pt
-int pegarMaior(struct no* pt, int i, struct no** folha);
+char * pegarMaior(struct no* pt, int i, struct no** folha);
 //- Função que anula a raiz caso sua quantidade de chaves seja 0 (r->m == 0)
 void anularRaiz(struct no** r);
 //- Função que concatena páginas
@@ -53,9 +53,6 @@ void redistribuir(struct no** pt_pai, struct no** pt, struct no** qt, int w);
 int main() {
     struct no* raiz = NULL;
 
-    for(int i = 1; i <= 809; i += 1)
-        insercao(&raiz, i);
-
     menu(&raiz);
 
     printf("\n");
@@ -64,7 +61,8 @@ int main() {
 
 //- Função que imprime o menu na tela
 void menu(struct no** raiz) {
-    int opt, x, f, g, executar = 1;
+    int opt, f, g, executar = 1;
+    char x[TAMANHO_MAXIMO_NOME];
     struct no* pt;
 
     do {
@@ -81,18 +79,18 @@ void menu(struct no** raiz) {
         switch(opt) {
             case 1:
                 printf("Insira a chave a ser buscada: ");
-                scanf("%d", &x);
+                scanf("%s", x);
                 buscaB(x, *raiz, &pt, &f, &g);
 
                 if(f == 1)
-                    printf("Endereço: %p\nElemento: %d", pt, pt->chaves[g]);
+                    printf("Endereço: %p\nElemento: %s", pt, pt->chaves[g]);
                 else
                     printf("Elemento não encontrado\n");
             break;
 
             case 2:
                 printf("Insira a nova chave: ");
-                scanf("%d", &x);
+                scanf("%s", x);
 
                 if(insercao(raiz, x))
                     printf("Chave inserida!\n");
@@ -102,7 +100,7 @@ void menu(struct no** raiz) {
 
             case 3:
                 printf("Insira a chave a ser removida: ");
-                scanf("%d", &x);
+                scanf("%s", x);
 
                 if(remover(raiz, x))
                     printf("Chave Removida!\n");
@@ -142,8 +140,11 @@ void menu(struct no** raiz) {
 }
 
 //- Função de comparar para a função qsort
-int comparar(const void * a, const void * b) {
-    return ( *(int*)a - *(int*)b );
+int compararChaves(const void * a, const void * b) {
+    const char *chaveA = *(const char **)a;
+    const char *chaveB = *(const char **)b;
+
+    return strcmp(chaveA, chaveB);
 }
 
 //- Função de comparação para ponteiros para no na função qsort
@@ -159,7 +160,7 @@ int compararNo(const void * a, const void * b) {
     } else if (noB == NULL) {
         return -1; // NULLs vão para o fim
     } else {
-        return (noA->chaves[0] - noB->chaves[0]);
+        return strcmp(noA->chaves[0], noB->chaves[0]);
     }
 }
 
@@ -169,13 +170,13 @@ void imprimirNo(struct no* pt) {
         printf("NULL");
     else
         for(int i = 0; i < pt->m; i++)
-            printf(" [%d]", pt->chaves[i]);
+            printf(" [%s]", pt->chaves[i]);
 
     printf("\n");
 }
 
 //- Função de busca em árvores B
-struct no* buscaB(int x, struct no* r, struct no** pt, int* f, int* g) {
+struct no* buscaB(char x[TAMANHO_MAXIMO_NOME], struct no* r, struct no** pt, int* f, int* g) {
     //Declarando ponteiro para percorrer os nós da árvore, definindo pt para NULL e inicializando *f = 0 => chave não encontrada
     struct no* p = r;
     struct no* pai;
@@ -194,13 +195,13 @@ struct no* buscaB(int x, struct no* r, struct no** pt, int* f, int* g) {
         //Enquanto i for menos que o número de chaves atual do nó
         while(p != NULL && i < p->m){
             //Caso x seja maior que a chave de índice i
-            if(x > p->chaves[i]){
+            if(strcmp(x, p->chaves[i]) > 1){
                 //atualizamos i para percorrer o array de chaves e *g para armazenar a possível posição onde x será colocado caso não seja encontrado
                 i += 1;         
                 *g += 1;
 
             //Caso x seja igual a chave de índice i
-            } else if(x == p->chaves[i]){
+            } else if(strcmp(x, p->chaves[i]) == 0){
                 //Alteramos p para NULL e *f para 1 => chave encontrada
                 p = NULL;
                 *f = 1;
@@ -221,14 +222,14 @@ struct no* buscaB(int x, struct no* r, struct no** pt, int* f, int* g) {
 }
 
 //- Função que gera um novo no de forma dinamica
-struct no* novaPagina(int x) {
+struct no* novaPagina(char x[TAMANHO_MAXIMO_NOME]) {
     //Variável que armazena o novo nó criado dinamicamente
     struct no* novo = NULL;
 
     //Criando novo nó de forma dinâmica e inicializando a primeira chave(campo chaves[0])
     //e seu total de chaves atual(campo m)
     novo = (struct no*) calloc (1, sizeof(struct no));
-    novo->chaves[0] = x;
+    strcpy(novo->chaves[0], x);
     novo->m = 1;
 
     //Inicializando todos os ponteiros para os filhos como NULL
@@ -240,7 +241,7 @@ struct no* novaPagina(int x) {
 }
 
 //- Função responsável por fazer a inserção de um novo elemento à árvore
-int insercao(struct no** raiz, int x) {
+int insercao(struct no** raiz, char x[TAMANHO_MAXIMO_NOME]) {
     //Variáveis de parâmetros para função de busca
     int f, g;
     struct no* pt = NULL;
@@ -258,10 +259,10 @@ int insercao(struct no** raiz, int x) {
         //Caso o elemento não foi encontrado, ou seja pt->m < 2 * D
         if(pt->m < 2*D) {
             //Inclui x na posição m
-            pt->chaves[pt->m] = x;
+            strcpy(pt->chaves[pt->m], x);
             pt->m += 1;
             //Ordena pt->chaves
-            qsort(pt->chaves, pt->m, sizeof(int), comparar);
+            qsort(pt->chaves, pt->m, sizeof(char *), compararChaves);
 
         //Caso a folha pt esteja lotada, executar o algoritmo de cisão
         } else {
@@ -288,11 +289,11 @@ struct no* pai(struct no* r, struct no* pt, int *i) {
 }
 
 //- Organiza o pai do nó que não está cheio quando o nó sofre cisão
-void organizaPai(struct no** pt_pai, struct no* pt_novo, int x) {
+void organizaPai(struct no** pt_pai, struct no* pt_novo, char x[TAMANHO_MAXIMO_NOME]) {
     //Sobe o valor medio para pt_pai e ordena o vetor de chaves
-    (*pt_pai)->chaves[(*pt_pai)->m] = x;
+    strcpy((*pt_pai)->chaves[(*pt_pai)->m], x);
     (*pt_pai)->m += 1;
-    qsort((*pt_pai)->chaves, (*pt_pai)->m, sizeof(int), comparar);
+    qsort((*pt_pai)->chaves, (*pt_pai)->m, sizeof(char *), compararChaves);
 
     //Sobe pt_novo para pt_pai e ordena o vetor de filhos
     (*pt_pai)->filhos[(*pt_pai)->m] = pt_novo;
@@ -301,22 +302,22 @@ void organizaPai(struct no** pt_pai, struct no* pt_novo, int x) {
 
 //- Função que gera trata de criar nova página, atualizar página atual e retornar posição
 // necessária para cisão
-void dividirFolha(struct no** r, struct no** pt, int x, int g) {
+void dividirFolha(struct no** r, struct no** pt, char x[TAMANHO_MAXIMO_NOME], int g) {
     //Vetor para armazenar as chaves da folha mais x
-    int vetor[2*D+1];
+    char vetor[2*D+1][TAMANHO_MAXIMO_NOME];
     //Cria novo ponteiro que será irmã adjacente da página atual
     struct no* pt_novo = novaPagina(0);
     
     //Copia o vetor pt->chaves para vetor e adiciona x
-    memcpy(vetor, (*pt)->chaves, (2*D)*sizeof(int));
-    vetor[2*D] = x;
+    memcpy(vetor, (*pt)->chaves, (2*D)* TAMANHO_MAXIMO_NOME * sizeof(char *));
+    strcpy(vetor[2*D], x);
     //Ordenando o vetor
-    qsort(vetor, 2*D+1, sizeof(int), comparar);
+    qsort(vetor, 2*D+1, sizeof(char *), compararChaves);
 
     //Copiando os elementos antes da posição do meio para pt_novo
-    memcpy(pt_novo->chaves, vetor, D*sizeof(int));
+    memcpy(pt_novo->chaves, vetor, D * TAMANHO_MAXIMO_NOME * sizeof(char *));
     //Copiando os elementos depois da ṕosição do meio para pt
-    memcpy((*pt)->chaves, &vetor[(2*D+1)/2 + 1], D*sizeof(int));
+    memcpy((*pt)->chaves, &vetor[(2*D+1)/2 + 1], D * TAMANHO_MAXIMO_NOME * sizeof(char *));
     //Atualizando número de chaves de pt e pt_novo
     (*pt)->m = pt_novo->m = D;
 
@@ -340,22 +341,22 @@ void dividirFolha(struct no** r, struct no** pt, int x, int g) {
 }
 
 //- Função responsável por fazer a divisão de nós(páginas) internos
-void dividirNoInt(struct no** r, struct no** pt, int x, struct no* novo_filho) {
+void dividirNoInt(struct no** r, struct no** pt, char x[TAMANHO_MAXIMO_NOME], struct no* novo_filho) {
     //Vetores para ordenação das chaves e dos filhos
-    int vetorC[2*D + 1];
+    char vetorC[2*D + 1];
     struct no* vetorF[2*D + 2];
     //Nova página
     struct no* pt_novo = novaPagina(0);
 
     //Copia o vetor pt->chaves para vetorC e adiciona x
-    memcpy(vetorC, (*pt)->chaves, (2*D)*sizeof(int));
-    vetorC[2*D] = x;
+    memcpy(vetorC, (*pt)->chaves, (2*D) * TAMANHO_MAXIMO_NOME * sizeof(char *));
+    strcpy(vetorC[2*D], x);
     //Ordenando vetorC
-    qsort(vetorC, 2*D + 1, sizeof(int), comparar);
+    qsort(vetorC, 2*D + 1, sizeof(char *), compararChaves);
     //Copiando os valores antes do meio para pt_novo
-    memcpy(pt_novo->chaves, vetorC, D*sizeof(int));
+    memcpy(pt_novo->chaves, vetorC, D * TAMANHO_MAXIMO_NOME * sizeof(char *));
     //Copiando os valores depois do meio para pt
-    memcpy((*pt)->chaves, &vetorC[(2*D+1)/2 + 1], D*sizeof(int));
+    memcpy((*pt)->chaves, &vetorC[(2*D+1)/2 + 1], D * TAMANHO_MAXIMO_NOME * sizeof(char *));
     //atualiza números de chaves de pt e pt_novo
     (*pt)->m = pt_novo->m = D;
 
@@ -389,15 +390,15 @@ void dividirNoInt(struct no** r, struct no** pt, int x, struct no* novo_filho) {
 }
 
 //- Pega a maior chave da filha seguindo os filhos de pt
-int pegarMaior(struct no* pt, int i, struct no** folha) {
+char * pegarMaior(struct no* pt, int i, struct no** folha) {
     //Ponteiro auxiliar para percorrer os descendentes de pt
     struct no* p = pt->filhos[i];
-    int y;
+    char y[TAMANHO_MAXIMO_NOME];
     //Percorrendo até chegar a folha
     while(p->filhos[0] != NULL)
         p = p->filhos[p->m];
     //Armazena a maior chave da folha
-    y = p->chaves[p->m - 1];
+    strcpy(y, p->chaves[p->m - 1]);
     //Armazena a folha e atualiza o seu tamanho
     *folha = p;
     p->m -= 1;

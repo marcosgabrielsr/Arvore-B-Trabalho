@@ -186,11 +186,11 @@ struct no* buscaB(char x[TAMANHO_MAXIMO_NOME], struct no* r, struct no** pt, int
         *g = 0;
         pai = *pt;
         *pt = p;
-        
+
         //Enquanto i for menos que o número de chaves atual do nó
         while(p != NULL && i < p->m){
             //Caso x seja maior que a chave de índice i
-            if(strcmp(x, p->chaves[i]) > 1){
+            if(strcmp(x, p->chaves[i]) > 0){
                 //atualizamos i para percorrer o array de chaves e *g para armazenar a possível posição onde x será colocado caso não seja encontrado
                 i += 1;         
                 *g += 1;
@@ -424,7 +424,6 @@ int remover(struct no** r, char x[TAMANHO_MAXIMO_NOME]) {
             //Sobrescreve o vetor com memmove para remover a antiga chave
             memcpy(&(pt->chaves[g]), &(pt->chaves[g + 1]), (pt->m-(g + 1)) * TAMANHO_MAXIMO_NOME * sizeof(int));
             pt->m -= 1;
-
             //Caso pt seja a raiz e a mesma não tenha chaves
             if(pt == *r && pt->m == 0)
                 anularRaiz(r);
@@ -466,11 +465,11 @@ void concatenar(struct no **r, struct no** pt_pai, struct no** pt, struct no** q
     struct no* aux = (*qt);
     
     //Adiciona as chaves de pt, qt e a chave que os divide em vetorC
-    memcpy(vetorC, (*pt)->chaves, (*pt)->m * TAMANHO_MAXIMO_NOME * sizeof(char *));
-    memcpy(&vetorC[(*pt)->m], (*qt)->chaves, (*qt)->m * TAMANHO_MAXIMO_NOME * sizeof(char *));
+    memcpy(vetorC, (*pt)->chaves, (*pt)->m*TAMANHO_MAXIMO_NOME*sizeof(char));
+    memcpy(&vetorC[(*pt)->m], (*qt)->chaves, (*qt)->m*TAMANHO_MAXIMO_NOME*sizeof(char));
     strcpy(vetorC[(*pt)->m + (*qt)->m], (*pt_pai)->chaves[w]);
     //Ordenando vetorC
-    qsort(vetorC, n, sizeof(char *), compararChaves);
+    qsort(vetorC, n, TAMANHO_MAXIMO_NOME, compararChaves);
 
     //Caso pt não seja uma folha
     if((*pt)->filhos[0] != NULL) {
@@ -484,14 +483,14 @@ void concatenar(struct no **r, struct no** pt_pai, struct no** pt, struct no** q
     }
 
     //Copia os dados de vetorC para pt
-    memcpy((*pt)->chaves, vetorC, n * TAMANHO_MAXIMO_NOME * sizeof(char *));
+    memcpy((*pt)->chaves, vetorC, n * TAMANHO_MAXIMO_NOME * sizeof(char));
     (*pt)->m = n;
     //Libera qt
     (*qt) = NULL;
     free(aux);
     
     //Sobreescrevendo as chaves e os filhos de pt_pai uma casa a menos
-    memmove(&(*pt_pai)->chaves[w], &(*pt_pai)->chaves[w + 1], ((*pt_pai)->m - (w + 1)) * TAMANHO_MAXIMO_NOME * sizeof(char *));
+    memmove(&(*pt_pai)->chaves[w], &(*pt_pai)->chaves[w + 1], ((*pt_pai)->m - (w + 1))*TAMANHO_MAXIMO_NOME*sizeof(char));
     memmove(&(*pt_pai)->filhos[w + 1], &(*pt_pai)->filhos[w + 2], ((*pt_pai)->m + 1 - (w + 2))*sizeof(struct no*));
     //Por fim decrementa o número de chaves de pt
     (*pt_pai)->m -= 1;
@@ -540,6 +539,8 @@ void redistribuir(struct no** pt_pai, struct no** pt, struct no** qt, int w) {
         printf("Erro ao alocar memória\n");
         return;
     }
+    printf("\nXXX\n");
+
     //Copiando as chaves de pt e qt para vetorC e adiciona a chave que os divide
     memcpy(vetorC, (*pt)->chaves, (*pt)->m * TAMANHO_MAXIMO_NOME * sizeof(char *));
     memcpy(&vetorC[(*pt)->m], (*qt)->chaves, (*qt)->m * TAMANHO_MAXIMO_NOME * sizeof(char *));

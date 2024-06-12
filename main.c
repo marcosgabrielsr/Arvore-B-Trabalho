@@ -29,8 +29,7 @@ int compararNo(const void * a, const void * b);
 int insercao(struct no** raiz, char x[TAMANHO_MAXIMO_NOME]);
 //- Função imprimir chaves do nó
 void imprimirNo(struct no* pt);
-//- Função que gera trata de criar nova nova folha, atualizar a folha atual e retornar posição
-// necessária para cisão
+//- Função que gera trata de criar nova nova folha, atualizar a folha atual e retornar posição necessária para cisão
 void dividirFolha(struct no** r, struct no** pt, char x[TAMANHO_MAXIMO_NOME], int g);
 //- Função responsável por fazer a divisão de nós(páginas) internos
 void dividirNoInt(struct no** r, struct no** pt, char x[TAMANHO_MAXIMO_NOME], struct no* novo_filho);
@@ -39,14 +38,13 @@ struct no* pai(struct no* r, struct no* pt, int *i);
 //- Organiza o pai do nó que não está cheio quando o nó sofre cisão
 void organizaPai(struct no** pt_pai, struct no* pt_novo, char x[TAMANHO_MAXIMO_NOME]);
 //- Função que remove um elemento da árvore
-int remover(struct no** r, int x);
+int remover(struct no** r, char x[TAMANHO_MAXIMO_NOME]);
 //- Pega a maior chave da filha seguindo os filhos de pt
-char * pegarMaior(struct no* pt, int i, struct no** folha);
+void pegarMaior(struct no** pt, int i, struct no** folha);
 //- Função que anula a raiz caso sua quantidade de chaves seja 0 (r->m == 0)
 void anularRaiz(struct no** r);
 //- Função que concatena páginas
 void concatenar(struct no **r, struct no** pt_pai, struct no** pt, struct no** qt, int w);
-//- Função que redistribui chaves de duas páginas
 //- Função que redistribui chaves de duas páginas
 void redistribuir(struct no** pt_pai, struct no** pt, struct no** qt, int w);
 
@@ -343,7 +341,7 @@ void dividirFolha(struct no** r, struct no** pt, char x[TAMANHO_MAXIMO_NOME], in
 //- Função responsável por fazer a divisão de nós(páginas) internos
 void dividirNoInt(struct no** r, struct no** pt, char x[TAMANHO_MAXIMO_NOME], struct no* novo_filho) {
     //Vetores para ordenação das chaves e dos filhos
-    char vetorC[2*D + 1];
+    char vetorC[2*D + 1][TAMANHO_MAXIMO_NOME];
     struct no* vetorF[2*D + 2];
     //Nova página
     struct no* pt_novo = novaPagina(0);
@@ -390,20 +388,18 @@ void dividirNoInt(struct no** r, struct no** pt, char x[TAMANHO_MAXIMO_NOME], st
 }
 
 //- Pega a maior chave da filha seguindo os filhos de pt
-char * pegarMaior(struct no* pt, int i, struct no** folha) {
+void pegarMaior(struct no** pt, int i, struct no** folha) {
     //Ponteiro auxiliar para percorrer os descendentes de pt
-    struct no* p = pt->filhos[i];
-    char y[TAMANHO_MAXIMO_NOME];
+    struct no* p = (*pt)->filhos[i];
+    
     //Percorrendo até chegar a folha
     while(p->filhos[0] != NULL)
         p = p->filhos[p->m];
     //Armazena a maior chave da folha
-    strcpy(y, p->chaves[p->m - 1]);
+    strcpy((*pt)->chaves[i], p->chaves[p->m - 1]);
     //Armazena a folha e atualiza o seu tamanho
     *folha = p;
     p->m -= 1;
-    //Retorna y
-    return y;
 }
 
 //-Função que anula a raiz caso sua quantidade de chaves seja 0 (r->m == 0)
@@ -414,7 +410,7 @@ void anularRaiz(struct no** r){
 }
 
 //- Função que remove um elemento da árvore
-int remover(struct no** r, int x) {
+int remover(struct no** r, char x[TAMANHO_MAXIMO_NOME]) {
     //Variáveis para a busca
     struct no* pt = NULL, * folha = NULL;
     int f, g;
@@ -430,7 +426,7 @@ int remover(struct no** r, int x) {
         if(pt->filhos[0] == NULL) {
             folha = pt;
             //Sobrescreve o vetor com memmove para remover a antiga chave
-            memcpy(&(pt->chaves[g]), &(pt->chaves[g + 1]), (pt->m-(g + 1))*sizeof(int));
+            memcpy(&(pt->chaves[g]), &(pt->chaves[g + 1]), (pt->m-(g + 1)) * TAMANHO_MAXIMO_NOME * sizeof(int));
             pt->m -= 1;
 
             //Caso pt seja a raiz e a mesma não tenha chaves
@@ -439,7 +435,7 @@ int remover(struct no** r, int x) {
         //Caso contrário...
         } else {
             //Pega o maior elemento da folha e coloca na posição de x
-            pt->chaves[g] = pegarMaior(pt, g, &folha);
+            pegarMaior(&pt, g, &folha);
         }
 
         //Verifica se o número atual de chaves de folha é menor que D
@@ -467,17 +463,18 @@ int remover(struct no** r, int x) {
 //- Função que concatena páginas
 void concatenar(struct no **r, struct no** pt_pai, struct no** pt, struct no** qt, int w) {
     //Vetor de auxílio para concatenar as páginas e adicionar a chave que os separa
-    int vetorC[2*D], n = (*pt)->m + (*qt)->m + 1;
+    char vetorC[2*D][TAMANHO_MAXIMO_NOME];
+    int n = (*pt)->m + (*qt)->m + 1;
     //Vetor de auxílio para concatenar os filhos das páginas
     struct no* vetorF[2*D+1];
     struct no* aux = (*qt);
     
     //Adiciona as chaves de pt, qt e a chave que os divide em vetorC
-    memcpy(vetorC, (*pt)->chaves, (*pt)->m*sizeof(int));
-    memcpy(&vetorC[(*pt)->m], (*qt)->chaves, (*qt)->m*sizeof(int));
-    vetorC[(*pt)->m + (*qt)->m] = (*pt_pai)->chaves[w];
+    memcpy(vetorC, (*pt)->chaves, (*pt)->m * TAMANHO_MAXIMO_NOME * sizeof(char *));
+    memcpy(&vetorC[(*pt)->m], (*qt)->chaves, (*qt)->m * TAMANHO_MAXIMO_NOME * sizeof(char *));
+    strcpy(vetorC[(*pt)->m + (*qt)->m], (*pt_pai)->chaves[w]);
     //Ordenando vetorC
-    qsort(vetorC, n, sizeof(int), comparar);
+    qsort(vetorC, n, sizeof(char *), compararChaves);
 
     //Caso pt não seja uma folha
     if((*pt)->filhos[0] != NULL) {
@@ -491,14 +488,14 @@ void concatenar(struct no **r, struct no** pt_pai, struct no** pt, struct no** q
     }
 
     //Copia os dados de vetorC para pt
-    memcpy((*pt)->chaves, vetorC, n*sizeof(int));
+    memcpy((*pt)->chaves, vetorC, n * TAMANHO_MAXIMO_NOME * sizeof(char *));
     (*pt)->m = n;
     //Libera qt
     (*qt) = NULL;
     free(aux);
     
     //Sobreescrevendo as chaves e os filhos de pt_pai uma casa a menos
-    memmove(&(*pt_pai)->chaves[w], &(*pt_pai)->chaves[w + 1], ((*pt_pai)->m - (w + 1))*sizeof(int));
+    memmove(&(*pt_pai)->chaves[w], &(*pt_pai)->chaves[w + 1], ((*pt_pai)->m - (w + 1)) * TAMANHO_MAXIMO_NOME * sizeof(char *));
     memmove(&(*pt_pai)->filhos[w + 1], &(*pt_pai)->filhos[w + 2], ((*pt_pai)->m + 1 - (w + 2))*sizeof(struct no*));
     //Por fim decrementa o número de chaves de pt
     (*pt_pai)->m -= 1;
@@ -536,10 +533,10 @@ void concatenar(struct no **r, struct no** pt_pai, struct no** pt, struct no** q
 //- Função que redistribui chaves de duas páginas
 void redistribuir(struct no** pt_pai, struct no** pt, struct no** qt, int w) {
     //Variável que armazena o número de elementos do vetor auxiliar de chaves
-    int n = (*pt)->m + (*qt)->m + 1;
+    const int n = (*pt)->m + (*qt)->m + 1;
     
     //vetor auxiliar que conterá todos os elementos de pt, qt e mais a chave que os divide
-    int* vetorC = (int*) calloc (n, sizeof(int));
+    char vetorC[n][TAMANHO_MAXIMO_NOME];
     struct no** vetorF = (struct no**) calloc (n + 1, sizeof(struct no*));
     
     //Caso ocorra um erro ao tentar alocar memória dinâmica
@@ -548,11 +545,11 @@ void redistribuir(struct no** pt_pai, struct no** pt, struct no** qt, int w) {
         return;
     }
     //Copiando as chaves de pt e qt para vetorC e adiciona a chave que os divide
-    memcpy(vetorC, (*pt)->chaves, (*pt)->m*sizeof(int));
-    memcpy(&vetorC[(*pt)->m], (*qt)->chaves, (*qt)->m*sizeof(int));
-    vetorC[n - 1] = (*pt_pai)->chaves[w];
+    memcpy(vetorC, (*pt)->chaves, (*pt)->m * TAMANHO_MAXIMO_NOME * sizeof(char *));
+    memcpy(&vetorC[(*pt)->m], (*qt)->chaves, (*qt)->m * TAMANHO_MAXIMO_NOME * sizeof(char *));
+    strcpy(vetorC[n - 1], (*pt_pai)->chaves[w]);
     //Ordenando vetorC
-    qsort(vetorC, n, sizeof(int), comparar);
+    qsort(vetorC, n, sizeof(char *), compararChaves);
     //Caso pt não seja uma folha
     if((*pt)->filhos[0] != NULL){
         memcpy(vetorF, (*pt)->filhos, ((*pt)->m + 1)*sizeof(struct no*));

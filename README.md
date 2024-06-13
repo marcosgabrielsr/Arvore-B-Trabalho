@@ -17,3 +17,4 @@ O algoritmo de cisão funciona tanto para folhas quanto para nós internos. Ele 
 O algoritmo de remoção segue a explicação do livro, de forma que sempre alteramos os valores das folhas e depois chamamos os algoritmos de Concatenação e Redistribuição que podem ser propagados ao longo das páginas.
 
 ## Concatenação e Redistribuição:
+Os algoritmo de Concatenação e de Redistribuição aplicam a explicação do livro. Para cada chamada destes algoritmos para uma determinada página, o irmão adjacente considerado é o índice esquerdo para quando o índice da página em seu pai é diferente de zero, para quando este índice é zero o irmão adjacente considerado é o de índice 1.

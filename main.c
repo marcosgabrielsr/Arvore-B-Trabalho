@@ -29,10 +29,12 @@ int compararNo(const void * a, const void * b);
 int insercao(struct no** raiz, char x[TAMANHO_MAXIMO_NOME]);
 //- Função imprimir chaves do nó
 void imprimirNo(struct no* pt);
+//- Função que divide as chaves para dois ponteiros na hora da cisao e retorna o valor medio em x
+void distribuirChaves(const int n, struct no** pt, struct no** qt, char x[TAMANHO_MAXIMO_NOME]);
+//- Função que divide os filhos para dois ponteiros na hora da cisao
+void distribuirFilhos(const int n, struct no** pt, struct no** qt, struct no* novo_filho);
 //- Função que gera trata de criar nova nova folha, atualizar a folha atual e retornar posição necessária para cisão
-void dividirFolha(struct no** r, struct no** pt, char x[TAMANHO_MAXIMO_NOME], int g);
-//- Função responsável por fazer a divisão de nós(páginas) internos
-void dividirNoInt(struct no** r, struct no** pt, char x[TAMANHO_MAXIMO_NOME], struct no* novo_filho);
+void dividirPagina(struct no** r, struct no** pt, char x[TAMANHO_MAXIMO_NOME], struct no* novo_filho);
 //- Função que retorna o pai de pt e a posição do filho no vetor de filhos do pai
 struct no* pai(struct no* r, struct no* pt, int *i);
 //- Organiza o pai do nó que não está cheio quando o nó sofre cisão
@@ -57,9 +59,8 @@ int main() {
     if(carregarDados("pokemon_names.txt", &raiz))
         menu(&raiz);
     else
-        printf("Erro ao encontrar o arquivo");
+        printf("Erro ao encontrar o arquivo\n");
 
-    printf("\n");
     return 0;
 }
 
@@ -289,7 +290,7 @@ int insercao(struct no** raiz, char x[TAMANHO_MAXIMO_NOME]) {
             qsort(pt->chaves, pt->m, TAMANHO_MAXIMO_NOME, compararChaves);
         //Caso a folha pt esteja lotada, executar o algoritmo de cisão
         } else {
-            dividirFolha(raiz, &pt, x, g);
+            dividirPagina(raiz, &pt, x, NULL);
         }
     }
     //Retorna um ao fim indicando a inserção de um novo elemento a árvore
@@ -323,30 +324,56 @@ void organizaPai(struct no** pt_pai, struct no* pt_novo, char x[TAMANHO_MAXIMO_N
     qsort((*pt_pai)->filhos, (*pt_pai)->m + 1, sizeof(struct no*), compararNo);
 }
 
-//- Função que gera trata de criar nova página, atualizar página atual e retornar posição
-// necessária para cisão
-void dividirFolha(struct no** r, struct no** pt, char x[TAMANHO_MAXIMO_NOME], int g) {
-    //Vetor para armazenar as chaves da folha mais x
-    char vetor[2*D+1][TAMANHO_MAXIMO_NOME];
-    //Cria novo ponteiro que será irmã adjacente da página atual
-    struct no* pt_novo = novaPagina(x);
-
+//- Função que divide as chaves para dois ponteiros na hora da cisao e retorna o valor medio em x
+void distribuirChaves(const int n, struct no** pt, struct no** qt, char x[TAMANHO_MAXIMO_NOME]) {
+    //Vetor para armazenar as chaves dos ponteiros mais x
+    char vetor[n][TAMANHO_MAXIMO_NOME];
     //Copia vetor pt->chaves para vetor e adiciona x
-    memcpy(vetor, (*pt)->chaves, 2*D*TAMANHO_MAXIMO_NOME*sizeof(char));
-    strcpy(vetor[2*D], x);
+    memcpy(vetor, (*pt)->chaves, (n - 1)*TAMANHO_MAXIMO_NOME*sizeof(char));
+    strcpy(vetor[n - 1], x);
     //Ordenando o vetor
-    qsort(vetor, 2*D+1, TAMANHO_MAXIMO_NOME, compararChaves);
-
+    qsort(vetor, n, TAMANHO_MAXIMO_NOME, compararChaves);
     //Copiando os elementos antes da posição do meio para pt_novo
-    memcpy(pt_novo->chaves, vetor, D*TAMANHO_MAXIMO_NOME*sizeof(char));
+    memcpy((*qt)->chaves, vetor, D*TAMANHO_MAXIMO_NOME*sizeof(char));
     //Copiando os elementos depois da posição do meio para pt
     memcpy((*pt)->chaves, &vetor[(2*D+1)/2 + 1], D*TAMANHO_MAXIMO_NOME*sizeof(char));
+    //Copia o valor medio para x para ser usado depois
+    strcpy(x,vetor[n/2]);
+}
+
+//- Função que divide os filhos para dois ponteiros na hora da cisao
+void distribuirFilhos(const int n, struct no** pt, struct no** qt, struct no* novo_filho) {
+    //Vetor para armazenar os filhos dos ponteiros mais novo_filho
+    struct no* vetorF[n];
+    //Copia o vetor pt->filhos para o vetorF e adiciona novo_filho
+    memcpy(vetorF, (*pt)->filhos, (2*D +1)*sizeof(struct no*));
+    vetorF[n - 1] = novo_filho;
+    //Ordenando vetorF
+    qsort(vetorF, n, sizeof(struct no*), compararNo);
+
+    //Copiando os primeiros D+1 valores para pt_novo->filhos
+    memcpy((*qt)->filhos, vetorF, (n/2)*sizeof(struct no*));
+    //Copiando os D+1 a partir do meio de vetorF para (*pt)->filhos
+    memcpy((*pt)->filhos, &vetorF[n/2], (n/2)*sizeof(struct no*));
+}
+
+//- Função que gera trata de criar nova página, atualizar página atual e retornar posição
+// necessária para cisão
+void dividirPagina(struct no** r, struct no** pt, char x[TAMANHO_MAXIMO_NOME], struct no* novo_filho) {
+    //Cria novo ponteiro que será irmã adjacente da página atual
+    struct no* pt_novo = novaPagina(x);
+    //Distribuindo as chaves para ambos
+    distribuirChaves(2*D + 1, pt, &pt_novo, x);
     //Atualizando número de chaves de pt e pt_novo
     (*pt)->m = pt_novo->m = D;
+
+    //Caso pt não seja uma folha
+    if((*pt)->filhos[0] != NULL)
+        distribuirFilhos(2*D + 2, pt, &pt_novo, novo_filho);
     
     if(*pt == *r){
         //Cria uma nova raiz com o elemento do meio do vetor
-        *r = novaPagina(vetor[(2*D + 1)/2]);
+        *r = novaPagina(x);
         (*r)->filhos[0] = pt_novo;
         (*r)->filhos[1] = *pt;
     } else {
@@ -355,59 +382,10 @@ void dividirFolha(struct no** r, struct no** pt, char x[TAMANHO_MAXIMO_NOME], in
         struct no* pt_pai = pai(*r, *pt, &w);
         //Caso pai de pt esteja cheio...
         if(pt_pai->m == 2*D) {
-            dividirNoInt(r, &pt_pai, vetor[(2*D + 1)/2], pt_novo);
+            dividirPagina(r, &pt_pai, x, pt_novo);
         //Caso contrário...
         } else {
-            organizaPai(&pt_pai, pt_novo, vetor[(2*D + 1)/2]);
-        }
-    }
-}
-
-//- Função responsável por fazer a divisão de nós(páginas) internos
-void dividirNoInt(struct no** r, struct no** pt, char x[TAMANHO_MAXIMO_NOME], struct no* novo_filho) {
-    //Vetores para ordenação das chaves e dos filhos
-    char vetorC[2*D + 1][TAMANHO_MAXIMO_NOME];
-    struct no* vetorF[2*D + 2];
-    //Nova página
-    struct no* pt_novo = novaPagina(x);
-    //Copia o vetor pt->chaves para vetorC e adiciona x
-    memcpy(vetorC, (*pt)->chaves, (2*D)*TAMANHO_MAXIMO_NOME*sizeof(char));
-    strcpy(vetorC[2*D], x);
-    
-    //Ordenando vetorC
-    qsort(vetorC, 2*D + 1, TAMANHO_MAXIMO_NOME, compararChaves);
-    //Copiando os valores antes do meio para pt_novo
-    memcpy(pt_novo->chaves, vetorC, D*TAMANHO_MAXIMO_NOME*sizeof(char));
-    //Copiando os valores depois do meio para pt
-    memcpy((*pt)->chaves, &vetorC[(2*D+1)/2 + 1], D*TAMANHO_MAXIMO_NOME*sizeof(char));
-    //atualiza números de chaves de pt e pt_novo
-    (*pt)->m = pt_novo->m = D;
-
-    //Copia o vetor pt->filhos para o vetorF e adiciona novo_filho
-    memcpy(vetorF, (*pt)->filhos, (2*D +1)*sizeof(struct no*));
-    vetorF[2*D + 1] = novo_filho;
-    //Ordenando vetorF
-    qsort(vetorF, 2*D+2, sizeof(struct no*), compararNo);
-
-    //Copiando os primeiros D+1 valores para pt_novo->filhos
-    memcpy(pt_novo->filhos, vetorF, (D+1)*sizeof(struct no*));
-    //Copiando os D+1 a partir do meio de vetorF para (*pt)->filhos
-    memcpy((*pt)->filhos, &vetorF[D+1], (D+1)*sizeof(struct no*));
-
-    if(*pt == *r){
-        *r = novaPagina(vetorC[(2*D + 1)/2]);
-        (*r)->filhos[0] = pt_novo;
-        (*r)->filhos[1] = *pt;
-    } else {
-        //Armazenando o pai de pt (pt_pai) e a posição w de pt em pt_pai->filho
-        int w;
-        struct no* pt_pai = pai(*r, *pt, &w);
-        //Caso pai de pt esteja cheio...
-        if(pt_pai->m == 2*D) {
-            dividirNoInt(r, &pt_pai, vetorC[(2*D + 1)/2], pt_novo);
-        //Caso contrário...
-        } else {
-            organizaPai(&pt_pai, pt_novo, vetorC[(2*D + 1)/2]);
+            organizaPai(&pt_pai, pt_novo, x);
         }
     }
 }
@@ -486,8 +464,8 @@ int remover(struct no** r, char x[TAMANHO_MAXIMO_NOME]) {
 //- Função que concatena páginas
 void concatenar(struct no **r, struct no** pt_pai, struct no** pt, struct no** qt, int w) {
     //Vetor de auxílio para concatenar as páginas e adicionar a chave que os separa
-    char vetorC[2*D][TAMANHO_MAXIMO_NOME];
-    int n = (*pt)->m + (*qt)->m + 1;
+    const int n = (*pt)->m + (*qt)->m + 1;
+    char vetorC[n][TAMANHO_MAXIMO_NOME];
     //Vetor de auxílio para concatenar os filhos das páginas
     struct no* vetorF[2*D+1];
     struct no* aux = (*qt);
@@ -558,12 +536,7 @@ void redistribuir(struct no** pt_pai, struct no** pt, struct no** qt, int w) {
     const int n = (*pt)->m + (*qt)->m + 1;
     //vetor auxiliar que conterá todos os elementos de pt, qt e mais a chave que os divide
     char vetorC[n][TAMANHO_MAXIMO_NOME];
-    struct no** vetorF = (struct no**) calloc (n + 1, sizeof(struct no*));
-    //Caso ocorra um erro ao tentar alocar memória dinâmica
-    if(vetorF == NULL){
-        printf("Erro ao alocar memória\n");
-        return;
-    }
+    struct no** vetorF[n + 1];
 
     //Copiando as chaves de pt e qt para vetorC e adiciona a chave que os divide
     memcpy(vetorC, (*pt)->chaves, (*pt)->m*TAMANHO_MAXIMO_NOME*sizeof(char));
@@ -593,6 +566,4 @@ void redistribuir(struct no** pt_pai, struct no** pt, struct no** qt, int w) {
     }
     //Atualizando a chave de pt_pai que separa pt e qt
     strcpy((*pt_pai)->chaves[w], vetorC[n/2]);
-
-    free(vetorF);
 }

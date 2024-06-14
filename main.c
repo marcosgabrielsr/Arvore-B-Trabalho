@@ -51,6 +51,8 @@ void concatenar(struct no **r, struct no** pt_pai, struct no** pt, struct no** q
 void redistribuir(struct no** pt_pai, struct no** pt, struct no** qt, int w);
 //- Função que carrega os nomes dos pokémons para a árvore B
 int carregarDados(char nameFile[], struct no** r);
+//- Função que seleciona o ajuste correto
+void selecionarAjuste(struct no** r, struct no** pt);
 
 int main() {
     //Criando raiz e ponteiro para arquivo
@@ -412,6 +414,24 @@ void anularRaiz(struct no** r){
     free(p);
 }
 
+//- Função que seleciona o ajuste correto
+void selecionarAjuste(struct no** r, struct no** pt) {
+    int w;
+    struct no* pt_pai = pai(*r, *pt, &w);
+    //Caso w seja pt_pai->m - 1...
+    if(w == 0) {
+        if((pt_pai->filhos[w])->m + (pt_pai->filhos[w + 1])->m < 2*D)
+            concatenar(r, &pt_pai, &pt_pai->filhos[w], &pt_pai->filhos[w + 1], w);
+        else
+            redistribuir(&pt_pai, &pt_pai->filhos[w], &pt_pai->filhos[w + 1], w);
+    } else {
+        if((pt_pai->filhos[w - 1])->m + (pt_pai->filhos[w])->m < 2*D)
+            concatenar(r, &pt_pai, &pt_pai->filhos[w - 1], &pt_pai->filhos[w], w - 1);
+        else
+            redistribuir(&pt_pai, &pt_pai->filhos[w - 1], &pt_pai->filhos[w], w - 1);
+    }
+}
+
 //- Função que remove um elemento da árvore
 int remover(struct no** r, char x[TAMANHO_MAXIMO_NOME]) {
     //Variáveis para a busca
@@ -438,24 +458,9 @@ int remover(struct no** r, char x[TAMANHO_MAXIMO_NOME]) {
             //Pega o maior elemento da folha e coloca na posição de x
             pegarMaior(&pt, g, &folha);
         }
-
         //Verifica se o número atual de chaves de folha é menor que D
         if(folha != *r && folha->m < D) {
-            //Pega o pai de folha e sua posição em relação a seu pai
-            int w;
-            struct no* pt_pai = pai(*r, folha, &w);
-            //Caso w seja pt_pai->m - 1...
-            if(w == 0) {
-                if((pt_pai->filhos[w])->m + (pt_pai->filhos[w + 1])->m < 2*D)
-                    concatenar(r, &pt_pai, &pt_pai->filhos[w], &pt_pai->filhos[w + 1], w);
-                else
-                    redistribuir(&pt_pai, &pt_pai->filhos[w], &pt_pai->filhos[w + 1], w);
-            } else {
-                if((pt_pai->filhos[w - 1])->m + (pt_pai->filhos[w])->m < 2*D)
-                    concatenar(r, &pt_pai, &pt_pai->filhos[w - 1], &pt_pai->filhos[w], w - 1);
-                else
-                    redistribuir(&pt_pai, &pt_pai->filhos[w - 1], &pt_pai->filhos[w], w - 1);
-            }
+            selecionarAjuste(r, &folha);
         }
     }
     return 1;
@@ -463,36 +468,23 @@ int remover(struct no** r, char x[TAMANHO_MAXIMO_NOME]) {
 
 //- Função que concatena páginas
 void concatenar(struct no **r, struct no** pt_pai, struct no** pt, struct no** qt, int w) {
-    //Vetor de auxílio para concatenar as páginas e adicionar a chave que os separa
     const int n = (*pt)->m + (*qt)->m + 1;
-    char vetorC[n][TAMANHO_MAXIMO_NOME];
-    //Vetor de auxílio para concatenar os filhos das páginas
-    struct no* vetorF[2*D+1];
-    struct no* aux = (*qt);
     //Adiciona as chaves de pt, qt e a chave que os divide em vetorC
-    memcpy(vetorC, (*pt)->chaves, (*pt)->m*TAMANHO_MAXIMO_NOME*sizeof(char));
-    memcpy(&vetorC[(*pt)->m], (*qt)->chaves, (*qt)->m*TAMANHO_MAXIMO_NOME*sizeof(char));
-    strcpy(vetorC[(*pt)->m + (*qt)->m], (*pt_pai)->chaves[w]);
-    //Ordenando vetorC
-    qsort(vetorC, n, TAMANHO_MAXIMO_NOME, compararChaves);
+    memcpy(&(*pt)->chaves[(*pt)->m], (*qt)->chaves, (*qt)->m*TAMANHO_MAXIMO_NOME*sizeof(char));
+    strcpy((*pt)->chaves[(*pt)->m + (*qt)->m], (*pt_pai)->chaves[w]);
+    qsort((*pt)->chaves, n, TAMANHO_MAXIMO_NOME, compararChaves);
 
     //Caso pt não seja uma folha
     if((*pt)->filhos[0] != NULL) {
         //Copia os filhos de pt e qt para vetorF
-        memcpy(vetorF, (*pt)->filhos, ((*pt)->m + 1)*sizeof(struct no*));
-        memcpy(&vetorF[(*pt)->m + 1], (*qt)->filhos, ((*qt)->m + 1)*sizeof(struct no*));
-        //Ordenando vetorF
-        qsort(vetorF, n + 1, sizeof(struct no*), compararNo);
-        //Copiando os dados de vetorF para o vetor de filhos de pt
-        memcpy((*pt)->filhos, vetorF, (n+1)*sizeof(struct no*));
+        memcpy(&(*pt)->filhos[(*pt)->m + 1], (*qt)->filhos, ((*qt)->m + 1)*sizeof(struct no*));
+        qsort((*pt)->filhos, n + 1, sizeof(struct no*), compararNo);
     }
-
-    //Copia os dados de vetorC para pt
-    memcpy((*pt)->chaves, vetorC, n * TAMANHO_MAXIMO_NOME * sizeof(char));
+    //Atualizando número de chaves de pt
     (*pt)->m = n;
     //Libera qt
-    (*qt) = NULL;
-    free(aux);
+    free(*qt);
+    *qt = NULL;
     
     //Sobreescrevendo as chaves e os filhos de pt_pai uma casa a menos
     memmove(&(*pt_pai)->chaves[w], &(*pt_pai)->chaves[w + 1], ((*pt_pai)->m - (w + 1))*TAMANHO_MAXIMO_NOME*sizeof(char));
@@ -504,29 +496,14 @@ void concatenar(struct no **r, struct no** pt_pai, struct no** pt, struct no** q
         //Caso o número de chaves da raiz seja 0...
         if((*pt_pai)->m == 0) {
             //Libera a raiz e a coloca em outro ponteiro
-            aux = *r;
+            struct no* aux = *r;
             *r = *pt;
             free(aux);
         }
     } else {
         //Verifica se pt_pai possui m < D para determinar ajustes que irão manter as propriedades...
-        if((*pt_pai)->m < D){
-            //Armazenando avo de pt (pai de pt_pai)
-            int j;
-            struct no* pt_avo = pai(*r, *pt_pai, &j);
-            //Caso j seja pt_pai->filhos[0]...
-            if(j == 0) {
-                if((pt_avo->filhos[j])->m + (pt_avo->filhos[j + 1])->m < 2*D)
-                    concatenar(r, &pt_avo, &pt_avo->filhos[j], &pt_avo->filhos[j + 1], j);
-                else
-                    redistribuir(&pt_avo, &pt_avo->filhos[j], &pt_avo->filhos[j + 1], j);
-            } else {
-                if((pt_avo->filhos[j - 1])->m + (pt_avo->filhos[j])->m < 2*D)
-                    concatenar(r, &pt_avo, &pt_avo->filhos[j - 1], &pt_avo->filhos[j], j - 1);
-                else
-                    redistribuir(&pt_avo, &pt_avo->filhos[j - 1], &pt_avo->filhos[j], j - 1);
-            }
-        }
+        if((*pt_pai)->m < D)
+            selecionarAjuste(r, pt_pai);
     }
 }   
 

@@ -62,7 +62,7 @@ int main() {
         menu(&raiz);
     else
         printf("Erro ao encontrar o arquivo\n");
-
+    //menu(&raiz);
     return 0;
 }
 
@@ -448,7 +448,7 @@ int remover(struct no** r, char x[TAMANHO_MAXIMO_NOME]) {
         if(pt->filhos[0] == NULL) {
             folha = pt;
             //Sobrescreve o vetor com memmove para remover a antiga chave
-            memcpy(&(pt->chaves[g]), &(pt->chaves[g + 1]), (pt->m-(g + 1)) * TAMANHO_MAXIMO_NOME * sizeof(int));
+            memcpy(&(pt->chaves[g]), &(pt->chaves[g + 1]), (pt->m-(g + 1)) * TAMANHO_MAXIMO_NOME * sizeof(char));
             pt->m -= 1;
             //Caso pt seja a raiz e a mesma não tenha chaves
             if(pt == *r && pt->m == 0)

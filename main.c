@@ -513,7 +513,7 @@ void redistribuir(struct no** pt_pai, struct no** pt, struct no** qt, int w) {
     const int n = (*pt)->m + (*qt)->m + 1;
     //vetor auxiliar que conterá todos os elementos de pt, qt e mais a chave que os divide
     char vetorC[n][TAMANHO_MAXIMO_NOME];
-    struct no** vetorF[n + 1];
+    struct no* vetorF[n + 1];
 
     //Copiando as chaves de pt e qt para vetorC e adiciona a chave que os divide
     memcpy(vetorC, (*pt)->chaves, (*pt)->m*TAMANHO_MAXIMO_NOME*sizeof(char));
